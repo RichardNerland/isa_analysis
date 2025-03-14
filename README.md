@@ -1,16 +1,106 @@
-# ISA Analysis Tool
+# Income Share Agreement (ISA) Simulation Model
+
+This repository contains a Python model for simulating Income Share Agreements (ISAs) for educational programs. The model allows for the simulation of different scenarios, degree types, and economic conditions to evaluate the financial performance of ISA programs.
 
 ## Overview
 
-This application simulates Income Share Agreement (ISA) outcomes for different educational programs. It models student earnings, payments, and returns to investors based on various economic and program-specific parameters.
+The ISA model simulates student outcomes after graduation, including:
+- Employment status
+- Earnings progression
+- ISA payments
+- Return on investment for investors and service providers
+
+The model supports two main program types:
+- University programs (primarily BA degrees)
+- TVET (Technical and Vocational Education and Training) programs
 
 ## Key Features
 
-- Simulate ISA outcomes for University and TVET (Technical and Vocational Education and Training) programs
-- Multiple predefined scenarios (baseline and conservative)
-- Customizable degree distributions and parameters
-- Detailed economic modeling including inflation, unemployment, and experience-based earnings growth
-- Analysis of investor returns and student payment patterns
+- Multiple predefined scenarios (baseline, conservative)
+- Custom degree distributions
+- Configurable economic parameters (inflation, unemployment)
+- Detailed payment tracking and statistics
+- Calculation of IRR (Internal Rate of Return)
+- Tracking of different payment caps and thresholds
+
+## Recent Improvements
+
+The codebase has been significantly improved with:
+
+1. **Type Hints**: Added comprehensive type annotations for better code documentation and IDE support
+2. **Code Organization**: Refactored large functions into smaller, more focused helper functions
+3. **Improved Documentation**: Enhanced docstrings and comments
+4. **Economic Model Enhancements**: Added bounds to inflation and unemployment rates
+5. **Error Handling**: Better handling of edge cases and potential errors
+6. **Reproducibility**: Added random seed support for reproducible simulations
+7. **Command-line Interface**: Added a CLI for easy execution of simulations
+8. **Visualization**: Added plotting capabilities for simulation results
+
+## Usage
+
+### Basic Usage
+
+```python
+from simple_isa_model import run_simple_simulation
+
+# Run a baseline TVET scenario
+results = run_simple_simulation(
+    program_type='TVET',
+    num_students=100,
+    num_sims=10,
+    scenario='baseline'
+)
+
+# Access key results
+print(f"IRR: {results['IRR']*100:.2f}%")
+print(f"Average Total Payment: ${results['average_total_payment']:.2f}")
+```
+
+### Command-line Interface
+
+The model can also be run directly from the command line:
+
+```bash
+# Run a baseline TVET scenario
+python simple_isa_model.py --program TVET --scenario baseline --students 100 --sims 10
+
+# Run a custom University scenario with plots
+python simple_isa_model.py --program University --scenario custom --students 200 --sims 20 --plot
+
+# Run with a fixed random seed for reproducibility
+python simple_isa_model.py --program TVET --scenario conservative --seed 42
+```
+
+## Customization
+
+The model supports extensive customization:
+
+```python
+# Custom degree distribution
+results = run_simple_simulation(
+    program_type='TVET',
+    num_students=100,
+    num_sims=10,
+    scenario='custom',
+    nurse_pct=30,
+    voc_pct=50,
+    na_pct=20,
+    # Custom economic parameters
+    initial_inflation_rate=0.03,
+    initial_unemployment_rate=0.10,
+    # Custom ISA parameters
+    isa_percentage=0.15,
+    isa_threshold=30000,
+    isa_cap=60000
+)
+```
+
+## Requirements
+
+- Python 3.6+
+- NumPy
+- Pandas
+- Matplotlib (for plotting)
 
 ## Model Assumptions
 
@@ -33,7 +123,7 @@ The model includes several degree types with different earnings profiles:
 3. **Vocational Training (VOC)**
    - Mean annual earnings: $31,500
    - Standard deviation: $4,800
-   - Experience growth: 4% annually
+   - Experience growth: 1% annually
    - Years to complete: 3
 
 4. **Nursing Degree (NURSE)**
@@ -82,47 +172,4 @@ The earnings values were derived from average salary levels found in public data
 
 ### Foreign Student Modeling
 
-The model accounts for students who return to their home countries after graduation through the `home_prob` parameter. When a student returns home, their earnings are significantly reduced, reflecting the typically lower wages in developing countries.
-
-## How to Use the Model
-
-```python
-# Run a baseline TVET simulation
-results_baseline = run_simple_simulation(
-    program_type='TVET',
-    num_students=100,
-    num_sims=10,
-    scenario='baseline'
-)
-
-# Run a conservative TVET simulation
-results_conservative = run_simple_simulation(
-    program_type='TVET',
-    num_students=100,
-    num_sims=10,
-    scenario='conservative'
-)
-
-# Run a custom simulation
-results_custom = run_simple_simulation(
-    program_type='TVET',
-    num_students=100,
-    num_sims=10,
-    scenario='custom',
-    nurse_pct=30,
-    voc_pct=50,
-    na_pct=20
-)
-```
-
-## Interpreting Results
-
-The simulation returns a dictionary containing:
-- Average total payments
-- Average payment duration
-- Employment statistics
-- Repayment statistics
-- Cap statistics (how many students hit payment caps)
-- Degree distribution information
-
-These results can be used to assess the financial viability of different ISA structures and to understand the risk profile of investments in different educational programs. 
+The model accounts for students who return to their home countries after graduation through the `home_prob` parameter. When a student returns home, their earnings are significantly reduced, reflecting the typically lower wages in developing countries. 

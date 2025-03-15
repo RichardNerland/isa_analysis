@@ -331,22 +331,22 @@ def run_simple_simulation(
     # Degree parameters
     ba_salary: float = 41300,
     ba_std: float = 6000,
-    ba_growth: float = 0.03,
+    ba_growth: float = 0.03,  # Growth rate in decimal form (e.g., 0.03 = 3% growth)
     ma_salary: float = 46709,
     ma_std: float = 6600,
-    ma_growth: float = 0.04,
+    ma_growth: float = 0.04,  # Growth rate in decimal form (e.g., 0.04 = 4% growth)
     asst_salary: float = 31500,
     asst_std: float = 2800,
-    asst_growth: float = 0.005,
+    asst_growth: float = 0.005,  # Growth rate in decimal form (e.g., 0.005 = 0.5% growth)
     nurse_salary: float = 40000,
     nurse_std: float = 4000,
-    nurse_growth: float = 0.02,
+    nurse_growth: float = 0.02,  # Growth rate in decimal form (e.g., 0.02 = 2% growth)
     na_salary: float = 2200,
     na_std: float = 640,
-    na_growth: float = 0.01,
+    na_growth: float = 0.01,  # Growth rate in decimal form (e.g., 0.01 = 1% growth)
     trade_salary: float = 35000,  
     trade_std: float = 3000,      
-    trade_growth: float = 0.02,   
+    trade_growth: float = 0.02,   # Growth rate in decimal form (e.g., 0.02 = 2% growth)
     # ISA parameters
     isa_percentage: Optional[float] = None,
     isa_threshold: float = 27000,
@@ -367,17 +367,17 @@ def run_simple_simulation(
         scenario: Predefined scenario to use ('baseline', 'conservative', 'optimistic', or 'custom')
         salary_adjustment_pct: Percentage adjustment to average salaries (legacy parameter)
         salary_std_adjustment_pct: Percentage adjustment to salary standard deviations (legacy parameter)
-        initial_unemployment_rate: Starting unemployment rate
-        initial_inflation_rate: Starting inflation rate
+        initial_unemployment_rate: Starting unemployment rate (decimal form, e.g., 0.08 = 8%)
+        initial_inflation_rate: Starting inflation rate (decimal form, e.g., 0.02 = 2%)
         performance_fee_pct: Percentage of payments that goes to Malengo (old fee structure)
         leave_labor_force_probability: Probability of a student leaving the labor force after graduation
         ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct: Custom degree distribution (if scenario='custom')
-        ba_salary, ba_std, ba_growth: Custom parameters for BA degree
-        ma_salary, ma_std, ma_growth: Custom parameters for MA degree
-        asst_salary, asst_std, asst_growth: Custom parameters for Assistant degree
-        nurse_salary, nurse_std, nurse_growth: Custom parameters for Nurse degree
-        na_salary, na_std, na_growth: Custom parameters for NA degree
-        trade_salary, trade_std, trade_growth: Custom parameters for Trade degree
+        ba_salary, ba_std, ba_growth: Custom parameters for BA degree (growth in decimal form)
+        ma_salary, ma_std, ma_growth: Custom parameters for MA degree (growth in decimal form)
+        asst_salary, asst_std, asst_growth: Custom parameters for Assistant degree (growth in decimal form)
+        nurse_salary, nurse_std, nurse_growth: Custom parameters for Nurse degree (growth in decimal form)
+        na_salary, na_std, na_growth: Custom parameters for NA degree (growth in decimal form)
+        trade_salary, trade_std, trade_growth: Custom parameters for Trade degree (growth in decimal form)
         isa_percentage: Custom ISA percentage (defaults based on program type)
         isa_threshold: Custom ISA threshold
         isa_cap: Custom ISA cap (defaults based on program type)
@@ -389,16 +389,9 @@ def run_simple_simulation(
     Returns:
         Dictionary of aggregated results from multiple simulations
     
-    Predefined Scenarios:
-        - University baseline: 45% BA, 24% MA, 27% ASST, 4% NA
-        - University conservative: 30% BA, 10% MA, 40% ASST, 20% NA
-        - University optimistic: 62.5% BA, 32.5% MA, 2.5% ASST, 2.5% NA
-        - Nurse baseline: 45% nurse, 45% assistant, 10% NA
-        - Nurse conservative: 20% nurse, 60% assistant, 20% NA
-        - Nurse optimistic: 60% nurse, 40% assistant, 0% NA
-        - Trade baseline: 40% trade, 40% assistant, 20% NA
-        - Trade conservative: 20% trade, 40% assistant, 40% NA
-        - Trade optimistic: 70% trade, 20% assistant, 10% NA
+    Note:
+        All growth rates should be provided in decimal form (e.g., 0.03 for 3% growth)
+        rather than as percentages.
     """
     # Set random seed if provided
     if random_seed is not None:
@@ -541,49 +534,55 @@ def _create_degree_definitions(
     na_salary: float, na_std: float, na_growth: float,
     trade_salary: float, trade_std: float, trade_growth: float
 ) -> Dict[str, Dict[str, Any]]:
-    """Helper function to create degree definitions."""
+    """
+    Helper function to create degree definitions.
+    
+    Note:
+        All growth rates should be provided in decimal form (e.g., 0.03 for 3% growth)
+        and will be used directly without further conversion.
+    """
     return {
         'BA': {
             'name': 'BA',
             'mean_earnings': ba_salary,
             'stdev': ba_std,
-            'experience_growth': ba_growth/100.0,  # Convert from percentage to decimal
+            'experience_growth': ba_growth,  # Growth rate already in decimal form
             'years_to_complete': 4
         },
         'MA': {
             'name': 'MA',
             'mean_earnings': ma_salary,
             'stdev': ma_std,
-            'experience_growth': ma_growth/100.0,
+            'experience_growth': ma_growth,  # Growth rate already in decimal form
             'years_to_complete': 6
         },
         'ASST': {
             'name': 'ASST',
             'mean_earnings': asst_salary,
             'stdev': asst_std,
-            'experience_growth': asst_growth/100.0,
+            'experience_growth': asst_growth,  # Growth rate already in decimal form
             'years_to_complete': 3
         },
         'NURSE': {
             'name': 'NURSE',
             'mean_earnings': nurse_salary,
             'stdev': nurse_std,
-            'experience_growth': nurse_growth/100.0,
+            'experience_growth': nurse_growth,  # Growth rate already in decimal form
             'years_to_complete': 4
         },
         'NA': {
             'name': 'NA',
             'mean_earnings': na_salary,
             'stdev': na_std,
-            'experience_growth': na_growth/100.0,
+            'experience_growth': na_growth,  # Growth rate already in decimal form
             'years_to_complete': 4
         },
         'TRADE': {
             'name': 'TRADE',
             'mean_earnings': trade_salary,
             'stdev': trade_std,
-            'experience_growth': trade_growth/100.0,
-            'years_to_complete': 3  # Trade degree takes 3 years to complete
+            'experience_growth': trade_growth,  # Growth rate already in decimal form
+            'years_to_complete': 3
         }
     }
 
@@ -1230,6 +1229,20 @@ def main():
     parser.add_argument('--seed', type=int, default=None, help='Random seed for reproducibility')
     parser.add_argument('--plot', action='store_true', help='Generate plots')
     
+    # Add growth rate parameters (all in decimal form)
+    parser.add_argument('--ba-growth', type=float, default=0.03, 
+                       help='BA annual earnings growth rate (decimal form, e.g., 0.03 for 3%)')
+    parser.add_argument('--ma-growth', type=float, default=0.04,
+                       help='MA annual earnings growth rate (decimal form, e.g., 0.04 for 4%)')
+    parser.add_argument('--asst-growth', type=float, default=0.005,
+                       help='Assistant annual earnings growth rate (decimal form, e.g., 0.005 for 0.5%)')
+    parser.add_argument('--nurse-growth', type=float, default=0.02,
+                       help='Nurse annual earnings growth rate (decimal form, e.g., 0.02 for 2%)')
+    parser.add_argument('--na-growth', type=float, default=0.01,
+                       help='NA annual earnings growth rate (decimal form, e.g., 0.01 for 1%)')
+    parser.add_argument('--trade-growth', type=float, default=0.02,
+                       help='Trade annual earnings growth rate (decimal form, e.g., 0.02 for 2%)')
+    
     args = parser.parse_args()
     
     print(f"Running {args.scenario} scenario for {args.program} program with {args.students} students")
@@ -1246,6 +1259,10 @@ def main():
                 ba_pct=40,
                 ma_pct=20,
                 na_pct=40,
+                ba_growth=args.ba_growth,
+                ma_growth=args.ma_growth,
+                asst_growth=args.asst_growth,
+                na_growth=args.na_growth,
                 random_seed=args.seed
             )
         elif args.program == 'Nurse':
@@ -1258,6 +1275,9 @@ def main():
                 nurse_pct=30,
                 asst_pct=50,
                 na_pct=20,
+                nurse_growth=args.nurse_growth,
+                asst_growth=args.asst_growth,
+                na_growth=args.na_growth,
                 random_seed=args.seed
             )
         elif args.program == 'Trade':
@@ -1270,15 +1290,24 @@ def main():
                 trade_pct=40,
                 asst_pct=30,
                 na_pct=30,
+                trade_growth=args.trade_growth,
+                asst_growth=args.asst_growth,
+                na_growth=args.na_growth,
                 random_seed=args.seed
             )
     else:
-        # Run with selected scenario
+        # Run with selected scenario and growth rates
         results = run_simple_simulation(
             program_type=args.program,
             num_students=args.students,
             num_sims=args.sims,
             scenario=args.scenario,
+            ba_growth=args.ba_growth,
+            ma_growth=args.ma_growth,
+            asst_growth=args.asst_growth,
+            nurse_growth=args.nurse_growth,
+            na_growth=args.na_growth,
+            trade_growth=args.trade_growth,
             random_seed=args.seed
         )
     

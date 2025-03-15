@@ -1360,22 +1360,22 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, ass
             num_sims=num_sims,
             ba_salary=ba_salary,
             ba_std=ba_std,
-            ba_growth=ba_growth,
+            ba_growth=ba_growth/ 100.0,
             ma_salary=ma_salary,
             ma_std=ma_std,
-            ma_growth=ma_growth,
+            ma_growth=ma_growth/ 100.0,
             asst_salary=asst_salary,
             asst_std=asst_std,
-            asst_growth=asst_growth,
+            asst_growth=asst_growth/ 100.0,
             nurse_salary=nurse_salary,
             nurse_std=nurse_std,
-            nurse_growth=nurse_growth,
+            nurse_growth=nurse_growth/ 100.0,
             na_salary=na_salary,
             na_std=na_std,
-            na_growth=na_growth,
+            na_growth=na_growth/ 100.0,
             trade_salary=trade_salary,
             trade_std=trade_std,
-            trade_growth=trade_growth,
+            trade_growth=trade_growth/ 100.0,
             isa_percentage=isa_percentage,
             isa_threshold=isa_threshold,
             isa_cap=isa_cap,
@@ -2131,6 +2131,12 @@ def compare_scenarios(n_clicks, saved_scenarios):
      State("nurse-salary", "value"),
      State("na-salary", "value"),
      State("trade-salary", "value"),
+     State("ba-growth", "value"),  # Add growth parameters
+     State("ma-growth", "value"),
+     State("asst-growth", "value"),
+     State("nurse-growth", "value"),
+     State("na-growth", "value"),
+     State("trade-growth", "value"),
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
@@ -2141,6 +2147,7 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
                               unemployment_range, leave_labor_force_range, wage_penalty_range,
                               program_type, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
                               ba_salary, ma_salary, asst_salary, nurse_salary, na_salary, trade_salary,
+                              ba_growth, ma_growth, asst_growth, nurse_growth, na_growth, trade_growth,
                               isa_percentage, isa_threshold, isa_cap,
                               num_students, inflation_rate):
     if not n_clicks:
@@ -2261,11 +2268,17 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
             na_pct=na_pct / 100.0,
             trade_pct=trade_pct / 100.0,
             ba_salary=adjusted_ba_salary,
+            ba_growth=ba_growth / 100.0,  # Convert from percentage (e.g., 3) to decimal (0.03)
             ma_salary=adjusted_ma_salary,
+            ma_growth=ma_growth / 100.0,  # Convert from percentage (e.g., 4) to decimal (0.04)
             asst_salary=adjusted_asst_salary,
+            asst_growth=asst_growth / 100.0,  # Convert from percentage (e.g., 0.5) to decimal (0.005)
             nurse_salary=adjusted_nurse_salary,
+            nurse_growth=nurse_growth / 100.0,  # Convert from percentage (e.g., 2) to decimal (0.02)
             na_salary=adjusted_na_salary,
+            na_growth=na_growth / 100.0,  # Convert from percentage (e.g., 1) to decimal (0.01)
             trade_salary=adjusted_trade_salary,
+            trade_growth=trade_growth / 100.0,  # Convert from percentage (e.g., 2) to decimal (0.02)
             isa_percentage=(isa_percentage or 12) / 100.0,
             isa_threshold=isa_threshold or 27000,
             isa_cap=isa_cap or 50000,
@@ -2720,6 +2733,12 @@ def validate_weight_sum(weight1, weight2, weight3):
      State("nurse-salary", "value"),
      State("na-salary", "value"),
      State("trade-salary", "value"),
+     State("ba-growth", "value"),  # Add growth parameters
+     State("ma-growth", "value"),
+     State("asst-growth", "value"),
+     State("nurse-growth", "value"),
+     State("na-growth", "value"),
+     State("trade-growth", "value"),
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
@@ -2732,6 +2751,7 @@ def run_blended_monte_carlo(n_clicks, num_sims,
                            leave_labor_force_range, wage_penalty_range,
                            program_type, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
                            ba_salary, ma_salary, asst_salary, nurse_salary, na_salary, trade_salary,
+                           ba_growth, ma_growth, asst_growth, nurse_growth, na_growth, trade_growth,
                            isa_percentage, isa_threshold, isa_cap,
                            num_students, inflation_rate):
     if n_clicks == 0:
@@ -2787,6 +2807,14 @@ def run_blended_monte_carlo(n_clicks, num_sims,
     if na_salary is None: na_salary = 2200
     if trade_salary is None: trade_salary = 35000
     
+    # Set default values for growth parameters if None
+    if ba_growth is None: ba_growth = 3  # 3%
+    if ma_growth is None: ma_growth = 4  # 4%
+    if asst_growth is None: asst_growth = 0.5  # 0.5%
+    if nurse_growth is None: nurse_growth = 2  # 2%
+    if na_growth is None: na_growth = 1  # 1%
+    if trade_growth is None: trade_growth = 2  # 2%
+    
     # Normalize weights to sum to 1
     total_weight = scenario1_weight + scenario2_weight + scenario3_weight
     if total_weight != 100:
@@ -2813,6 +2841,12 @@ def run_blended_monte_carlo(n_clicks, num_sims,
         'nurse_salary': nurse_salary or 40000,
         'na_salary': na_salary or 2200,
         'trade_salary': trade_salary or 35000,
+        'ba_growth': (ba_growth or 0) / 100.0,
+        'ma_growth': (ma_growth or 0) / 100.0,
+        'asst_growth': (asst_growth or 0) / 100.0,
+        'nurse_growth': (nurse_growth or 0) / 100.0,
+        'na_growth': (na_growth or 0) / 100.0,
+        'trade_growth': (trade_growth or 0) / 100.0,
         'isa_percentage': (isa_percentage or 12) / 100.0,
         'isa_threshold': isa_threshold or 27000,
         'isa_cap': isa_cap or 50000,

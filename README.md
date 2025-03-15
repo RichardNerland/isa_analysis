@@ -10,9 +10,10 @@ The ISA model simulates student outcomes after graduation, including:
 - ISA payments
 - Return on investment for investors and service providers
 
-The model supports two main program types:
+The model supports three main program types:
 - University programs (primarily BA degrees)
-- TVET (Technical and Vocational Education and Training) programs
+- Nurse programs (nursing and assistant tracks)
+- Trade programs (Skilled trades and assistant tracks)
 
 ## Key Features
 
@@ -43,9 +44,9 @@ The codebase has been significantly improved with:
 ```python
 from simple_isa_model import run_simple_simulation
 
-# Run a baseline TVET scenario
+# Run a baseline Nurse scenario
 results = run_simple_simulation(
-    program_type='TVET',
+    program_type='Nurse',
     num_students=100,
     num_sims=10,
     scenario='baseline'
@@ -61,14 +62,14 @@ print(f"Average Total Payment: ${results['average_total_payment']:.2f}")
 The model can also be run directly from the command line:
 
 ```bash
-# Run a baseline TVET scenario
-python simple_isa_model.py --program TVET --scenario baseline --students 100 --sims 10
+# Run a baseline Nurse scenario
+python simple_isa_model.py --program Nurse --scenario baseline --students 100 --sims 10
 
 # Run a custom University scenario with plots
-python simple_isa_model.py --program University --scenario custom --students 200 --sims 20 --plot
+python simple_isa_model.py --program University --scenario baseline --students 200 --sims 20 --plot
 
 # Run with a fixed random seed for reproducibility
-python simple_isa_model.py --program TVET --scenario conservative --seed 42
+python simple_isa_model.py --program Nurse --scenario conservative --seed 42
 ```
 
 ## Customization
@@ -78,12 +79,12 @@ The model supports extensive customization:
 ```python
 # Custom degree distribution
 results = run_simple_simulation(
-    program_type='TVET',
+    program_type='Nurse',
     num_students=100,
     num_sims=10,
     scenario='custom',
     nurse_pct=30,
-    voc_pct=50,
+    asst_pct=50,
     na_pct=20,
     # Custom economic parameters
     initial_inflation_rate=0.03,
@@ -120,7 +121,7 @@ The model includes several degree types with different earnings profiles:
    - Experience growth: 4% annually
    - Years to complete: 6
 
-3. **Vocational Training (VOC)**
+3. **Assistant Training (ASST)**
    - Mean annual earnings: $31,500
    - Standard deviation: $4,800
    - Experience growth: 1% annually
@@ -145,21 +146,21 @@ The earnings values were derived from average salary levels found in public data
 
 - **Nursing Earnings**: Based on median monthly wage of $4,056 (25th percentile: $3,608, 75th percentile: $4,552), annualized to $48,672 with a standard deviation of $8,400. A 15% student wage penalty was applied, resulting in $44,000 mean earnings.
 
-- **Vocational Earnings**: Based on median monthly wage of $2,640 (25th percentile: $2,383, 75th percentile: $2,924), annualized to $31,680 with a standard deviation of $4,800. No additional wage penalty was applied as these values already reflect entry-level positions.
+- **Assistant Earnings**: Based on median monthly wage of $2,640 (25th percentile: $2,383, 75th percentile: $2,924), annualized to $31,680 with a standard deviation of $4,800. No additional wage penalty was applied as these values already reflect entry-level positions.
 
 ### Predefined Scenarios
 
 1. **University Baseline**
    - 100% Bachelor's Degree students
 
-2. **TVET Baseline**
+2. **Nurse Baseline**
    - 45% Nursing students
-   - 45% Vocational students
+   - 45% Assistant students
    - 10% No Advancement students
 
-3. **TVET Conservative**
+3. **Nurse Conservative**
    - 25% Nursing students
-   - 60% Vocational students
+   - 60% Assistant students
    - 15% No Advancement students
 
 ### Economic Parameters
@@ -167,8 +168,8 @@ The earnings values were derived from average salary levels found in public data
 - Default inflation rate: 2% annually
 - Default unemployment rate: 4%
 - ISA threshold: $27,000 (minimum income before payments begin)
-- ISA cap: Varies by program ($72,500 for University, $49,950 for TVET)
-- ISA percentage: Varies by program (14% for University, 12% for TVET)
+- ISA cap: Varies by program ($72,500 for University, $49,950 for Nurse)
+- ISA percentage: Varies by program (14% for University, 12% for Nurse)
 
 ### Foreign Student Modeling
 

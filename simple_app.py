@@ -53,41 +53,59 @@ sim_options = [
 
 # Define the preset scenarios from the original notebook
 preset_scenarios = {
-    'Baseline': {
-        'description': 'Standard distribution with balanced degree types.',
-        'degrees': {'BA': 0.43, 'MA': 0.23, 'VOC': 0.25, 'NURSE': 0.0, 'NA': 0.09, 'LABOR': 0.0}
+    'university_baseline': {
+        'name': 'University Baseline',
+        'description': 'Balanced mix of BA, MA, and Assistant Track degrees.',
+        'program_type': 'University',
+        'degrees': {'BA': 0.45, 'MA': 0.24, 'ASST': 0.27, 'NURSE': 0.0, 'NA': 0.04, 'TRADE': 0.0}
     },
-    'Conservative': {
-        'description': 'More vocational degrees, fewer advanced degrees.',
-        'degrees': {'BA': 0.3, 'MA': 0.1, 'VOC': 0.4, 'NURSE': 0.0, 'NA': 0.2, 'LABOR': 0.0}
+    'university_conservative': {
+        'name': 'University Conservative',
+        'description': 'More assistant track degrees, fewer advanced degrees.',
+        'program_type': 'University',
+        'degrees': {'BA': 0.32, 'MA': 0.11, 'ASST': 0.42, 'NURSE': 0.0, 'NA': 0.15, 'TRADE': 0.0}
     },
-    'Optimistic': {
-        'description': 'Mostly bachelor and master degrees with very few dropouts.',
-        'degrees': {'BA': 0.625, 'MA': 0.325, 'VOC': 0.025, 'NURSE': 0.0, 'NA': 0.025, 'LABOR': 0.0}
+    'university_optimistic': {
+        'name': 'University Optimistic',
+        'description': 'Higher proportion of BA and MA degrees, fewer assistant track degrees.',
+        'program_type': 'University',
+        'degrees': {'BA': 0.63, 'MA': 0.33, 'ASST': 0.025, 'NURSE': 0.0, 'NA': 0.015, 'TRADE': 0.0}
     },
-    'TVET Baseline': {
-        'description': 'TVET baseline scenario with more vocational than nursing degrees.',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'VOC': 0.60, 'NURSE': 0.25, 'NA': 0.15, 'LABOR': 0.0}
+    'nurse_baseline': {
+        'name': 'Nursing Baseline',
+        'description': 'Nursing baseline scenario with more assistant track than nursing degrees.',
+        'program_type': 'Nurse',
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.60, 'NURSE': 0.25, 'NA': 0.15, 'TRADE': 0.0}
     },
-    'TVET Conservative': {
-        'description': 'Conservative TVET scenario with higher dropout rate.',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'VOC': 0.50, 'NURSE': 0.20, 'NA': 0.30, 'LABOR': 0.0}
+    'nurse_conservative': {
+        'name': 'Nursing Conservative',
+        'description': 'Higher proportion of assistant track degrees, more dropouts.',
+        'program_type': 'Nurse',
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.50, 'NURSE': 0.20, 'NA': 0.30, 'TRADE': 0.0}
     },
-    'TVET Optimistic': {
-        'description': 'Optimistic TVET scenario with no dropouts, more nursing degrees.',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'VOC': 0.40, 'NURSE': 0.60, 'NA': 0.0, 'LABOR': 0.0}
+    'nurse_optimistic': {
+        'name': 'Nursing Optimistic',
+        'description': 'Higher proportion of nursing degrees, no dropouts.',
+        'program_type': 'Nurse',
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.60, 'NA': 0.0, 'TRADE': 0.0}
     },
-    'Labor Baseline': {
-        'description': 'Labor baseline scenario with 75% labor degrees and 25% NA.',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'VOC': 0.0, 'NURSE': 0.0, 'NA': 0.25, 'LABOR': 0.75}
+    'trade_baseline': {
+        'name': 'Trade Baseline',
+        'description': 'Standard trade program distribution.',
+        'program_type': 'Trade',
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.0, 'NA': 0.20, 'TRADE': 0.40}
     },
-    'Labor Conservative': {
-        'description': 'Conservative Labor scenario with 60% labor degrees and 40% NA.',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'VOC': 0.0, 'NURSE': 0.0, 'NA': 0.40, 'LABOR': 0.60}
+    'trade_conservative': {
+        'name': 'Trade Conservative',
+        'description': 'Higher dropout rate for trade programs.',
+        'program_type': 'Trade',
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.0, 'NA': 0.40, 'TRADE': 0.2}
     },
-    'Labor Optimistic': {
-        'description': 'Optimistic Labor scenario with 95% labor degrees and minimal dropouts.',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'VOC': 0.0, 'NURSE': 0.0, 'NA': 0.05, 'LABOR': 0.95}
+    'trade_optimistic': {
+        'name': 'Trade Optimistic',
+        'description': 'Very low dropout rate for trade programs.',
+        'program_type': 'Trade',
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.35, 'NURSE': 0.0, 'NA': 0.05, 'TRADE': 0.60}
     }
 }
 
@@ -104,16 +122,16 @@ app.layout = html.Div([
                 html.H3("Overview", style={'marginTop': '30px'}),
                 html.P([
                     "This tool simulates Income Share Agreement (ISA) outcomes for students in various educational programs, ",
-                    "including university degrees, vocational training, and specific labor or nursing tracks. By modeling student earnings, ",
+                    "including university degrees, assistant training, and specific trade or nursing tracks. By modeling student earnings, ",
                     "payment thresholds, and potential dropouts or returns to home countries, it provides a comprehensive view of ",
                     "investor returns and student payment patterns under different scenarios."
                 ]),
                 
                 html.H3("Key Features", style={'marginTop': '30px'}),
                 html.Ul([
-                    html.Li("Program Simulation: Model ISA outcomes separately for University, TVET, and Labor pathways."),
+                    html.Li("Program Simulation: Model ISA outcomes separately for University, Nursing, and Trade pathways."),
                     html.Li("Multiple Scenarios: Choose among baseline, conservative, or optimistic enrollment and graduation distributions."),
-                    html.Li("Degree Distributions: Adjust the proportion of students pursuing different degrees, such as bachelor's, master's, and vocational programs."),
+                    html.Li("Degree Distributions: Adjust the proportion of students pursuing different degrees, such as bachelor's, master's, and assistant programs."),
                     html.Li("Economic Modeling: Incorporate inflation, unemployment, and experience-based earnings growth to reflect real-world variability."),
                     html.Li("Investor Returns & Student Payments: Estimate how changes in program parameters, dropouts, or home-country returns affect the financial outcomes for all parties.")
                 ]),
@@ -131,7 +149,7 @@ app.layout = html.Div([
                     html.H5("Bachelor's Degree (BA)"),
                     html.Ul([
                         html.Li("Mean earnings: $41,300/year"),
-                        html.Li("SD: $13,000"),
+                        html.Li("SD: $6,000"),
                         html.Li("Annual Experience Growth: 3%"),
                         html.Li("Years to Complete: 4")
                     ])
@@ -141,18 +159,18 @@ app.layout = html.Div([
                     html.H5("Master's Degree (MA)"),
                     html.Ul([
                         html.Li("Mean earnings: $46,709/year"),
-                        html.Li("SD: $15,000"),
+                        html.Li("SD: $6,600"),
                         html.Li("Annual Experience Growth: 4%"),
                         html.Li("Years to Complete: 6")
                     ])
                 ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
                 
                 html.Div([
-                    html.H5("Vocational Training (VOC)"),
+                    html.H5("Assistant Track (ASST)"),
                     html.Ul([
                         html.Li("Mean earnings: $31,500/year"),
-                        html.Li("SD: $4,800"),
-                        html.Li("Annual Experience Growth: 1%"),
+                        html.Li("SD: $2,800"),
+                        html.Li("Annual Experience Growth: .5%"),
                         html.Li("Years to Complete: 3")
                     ])
                 ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
@@ -160,18 +178,18 @@ app.layout = html.Div([
                 html.Div([
                     html.H5("Nursing Degree (NURSE)"),
                     html.Ul([
-                        html.Li("Mean earnings: $44,000/year"),
-                        html.Li("SD: $8,400"),
-                        html.Li("Annual Experience Growth: 1%"),
+                        html.Li("Mean earnings: $40,000/year"),
+                        html.Li("SD: $4,000"),
+                        html.Li("Annual Experience Growth: 2%"),
                         html.Li("Years to Complete: 4")
                     ])
                 ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
                 
                 html.Div([
-                    html.H5("Labor Program (LABOR)"),
+                    html.H5("Trade Program (TRADE)"),
                     html.Ul([
                         html.Li("Mean earnings: $35,000/year"),
-                        html.Li("SD: $5,000"),
+                        html.Li("SD: $3,000"),
                         html.Li("Annual Experience Growth: 2%"),
                         html.Li("Years to Complete: 3")
                     ])
@@ -190,7 +208,7 @@ app.layout = html.Div([
                 
                 html.H4("2. Earnings Methodology", style={'marginTop': '20px'}),
                 html.P([
-                    "We derive salary levels from public labor data and research on earnings for new graduates in high-income countries. ",
+                    "We derive salary levels from public labor data and research on earnings for new graduates in high-income countries. Links are at bottom of page.",
                     "This baseline is then adjusted for the following:"
                 ]),
                 html.Ul([
@@ -203,30 +221,32 @@ app.layout = html.Div([
                     "In addition to the general BA or MA earnings, we refine earnings for university students based on a detailed degree mix:"
                 ]),
                 html.Ul([
-                    html.Li("Tax & Law (21%): ~€60,000 initial (after 20% penalty), growing to ~€600k–€700k total over 10 years."),
-                    html.Li("Business & Management (19%): ~€63,000 initial, ~€650k–€750k over 10 years."),
-                    html.Li("Engineering (21%): ~€52,000 initial, ~€500k–€600k over 10 years."),
-                    html.Li("Natural Sciences (18%): ~€49,000 initial, ~€450k–€550k over 10 years."),
-                    html.Li("Information Technology (7%): ~€45,000 initial, ~€400k–€500k over 10 years."),
-                    html.Li("Agriculture (7%): ~€35,000 initial, ~€300k–€400k over 10 years."),
-                    html.Li("Humanities & Arts (3%): ~€36k–€40k initial, ~€350k–€450k over 10 years."),
-                    html.Li("Other Fields (4%): ~€40,000 initial, ~€400k total over 10 years.")
+                    html.Li("Tax & Law (21%): ~€60,000 initial (after 20% penalty)"),
+                    html.Li("Business & Management (19%): ~€63,000 initial"),
+                    html.Li("Engineering (21%): ~€52,000 initial"),
+                    html.Li("Natural Sciences (18%): ~€49,000 initial"),
+                    html.Li("Information Technology (7%): ~€45,000 initial"),
+                    html.Li("Agriculture (7%): ~€35,000 initial"),
+                    html.Li("Humanities & Arts (3%): ~€36k–€40k initial"),
+                    html.Li("Other Fields (4%): ~€40,000 initial")
                 ]),
                 html.P([
-                    "Overall, university graduates fall in the €40–€60k range early in their careers. Some pursue master's degrees, ",
-                    "boosting their initial pay ~13% above the typical bachelor's start."
+                    "Overall, university graduates have the following earnings profiles:", html.Br(),
+                    "- Bachelor's (BA): $41,300 average with $6,000 standard deviation and 3% annual growth", html.Br(),
+                    "- Master's (MA): $46,709 average with $6,600 standard deviation and 4% annual growth", html.Br(),
+                    "The model assumes that university students have a 5% chance of leaving the labor market after graduation."
                 ]),
                 
-                html.H5("TVET Program Earnings", style={'marginTop': '15px'}),
+                html.H5("Nursing Program Earnings", style={'marginTop': '15px'}),
                 html.Ul([
-                    html.Li("Nursing (NURSE): Average $48,672 annually, adjusted to $44,000 for new arrivals. Stable wages with a modest 1% annual growth."),
-                    html.Li("Vocational (VOC): Median $31,680 annually with a $4,800 SD. Reflects entry-level positions in skilled trades, also with 1% annual growth.")
+                    html.Li("Nursing (NURSE): Average $40,000 annually with a $4,000 standard deviation. A reasonable career progression with 2% annual growth."),
+                    html.Li("Assistant Track (ASST): Median $31,500 annually with a $2,800 standard deviation. Reflects roles like Nurse Assistant, Building Technician, etc. with 0.5% annual growth.")
                 ]),
                 
-                html.H5("Labor Program Earnings", style={'marginTop': '15px'}),
+                html.H5("Trade Program Earnings", style={'marginTop': '15px'}),
                 html.P([
-                    "The Labor track features trades like plumbing, electrical work, and other skilled manual roles. ",
-                    "A $35,000 mean salary with a 2% annual growth captures steady wage progression in these fields."
+                    "The Trade track (TRADE) features skilled manual roles like plumbing, electrical work, and other trades. ",
+                    "A $35,000 mean salary with a $3,000 standard deviation and 2% annual growth captures steady wage progression in these fields."
                 ]),
                 
                 html.H4("Predefined Scenarios", style={'marginTop': '20px'}),
@@ -236,35 +256,37 @@ app.layout = html.Div([
                 
                 html.H5("University Programs", style={'marginTop': '15px'}),
                 html.Ul([
-                    html.Li("Baseline: 43% BA, 23% MA, 25% VOC, 9% NA"),
-                    html.Li("Conservative: 30% BA, 10% MA, 40% VOC, 20% NA"),
-                    html.Li("Optimistic: 62.5% BA, 32.5% MA, 2.5% VOC, 2.5% NA")
+                    html.Li("Baseline: 45% BA, 24% MA, 27% ASST, 4% NA"),
+                    html.Li("Conservative: 32% BA, 11% MA, 42% ASST, 15% NA"),
+                    html.Li("Optimistic: 63% BA, 33% MA, 2.5% ASST, 1.5% NA")
                 ]),
                 
-                html.H5("TVET Programs", style={'marginTop': '15px'}),
+                html.H5("Nursing Programs", style={'marginTop': '15px'}),
                 html.Ul([
-                    html.Li("Baseline: 45% Nursing, 45% Vocational, 10% No Advancement"),
-                    html.Li("Conservative: 20% Nursing, 60% Vocational, 20% No Advancement")
+                    html.Li("Baseline: 25% Nursing, 60% Assistant Track, 15% No Advancement"),
+                    html.Li("Conservative: 20% Nursing, 50% Assistant Track, 30% No Advancement"),
+                    html.Li("Optimistic: 60% Nursing, 40% Assistant Track, 0% No Advancement")
                 ]),
                 
-                html.H5("Labor Programs", style={'marginTop': '15px'}),
+                html.H5("Trade Programs", style={'marginTop': '15px'}),
                 html.Ul([
-                    html.Li("Baseline: 75% Labor, 25% No Advancement"),
-                    html.Li("Conservative: 60% Labor, 40% No Advancement")
+                    html.Li("Baseline: 40% Trade, 40% Assistant Track, 20% No Advancement"),
+                    html.Li("Conservative: 20% Trade, 50% Assistant Track, 30% No Advancement"),
+                    html.Li("Optimistic: 70% Trade, 20% Assistant Track, 10% No Advancement")
                 ]),
                 
                 html.H4("Economic Parameters", style={'marginTop': '20px'}),
                 html.Ul([
                     html.Li("Inflation: 2% annually"),
-                    html.Li("Unemployment: 4% default rate"),
+                    html.Li("Unemployment: 8% default rate"),
                     html.Li(html.Span(["ISA Caps:", html.Br(),
                                       "University: $72,500", html.Br(),
-                                      "TVET: $49,950", html.Br(),
-                                      "Labor: $45,000"])),
+                                      "Nursing: $49,950", html.Br(),
+                                      "Trade: $45,000"])),
                     html.Li(html.Span(["ISA Percentage:", html.Br(),
                                       "University: 14%", html.Br(),
-                                      "TVET: 12%", html.Br(),
-                                      "Labor: 10%"]))
+                                      "Nursing: 12%", html.Br(),
+                                      "Trade: 12%"]))
                 ]),
                 html.P([
                     "These parameters shape the cash flow between students and investors. For example, if a student's earnings exceed $27,000, ",
@@ -299,7 +321,49 @@ app.layout = html.Div([
                     "…the model forecasts total student earnings, ISA payment streams, and ultimate returns to investors or lenders. ",
                     "Through this flexible and data-informed approach, users can test different assumptions about student pathways and labor market outcomes, ",
                     "then see how changes in these factors drive key financial results—both for the students and for the financing entity behind the ISAs."
-                ])
+                ]),
+                
+                # Add German profession names and salary reference links
+                html.H4("German Profession Names & Salary References", style={'marginTop': '20px'}),
+                html.P([
+                    "Below are the German names for the professions mentioned above, along with specific job examples for each degree type:"
+                ]),
+                html.Ul([
+                    html.Li([
+                        html.Strong("Bachelor's Degree (BA) - Bachelorabschluss"), html.Br(),
+                        "Example professions: Chemieingenieur/in (Chemical Engineer), Jurist/in (Lawyer), Wirtschaftsingenieur/in (Business Engineer), Informatiker/in (Computer Scientist)"
+                    ]),
+                    html.Li([
+                        html.Strong("Master's Degree (MA) - Masterabschluss"), html.Br(),
+                        "Example professions: Maschinenbauingenieur/in (Mechanical Engineer), Architekt/in (Architect), Betriebswirt/in (Business Administrator), Physiker/in (Physicist)"
+                    ]),
+                    html.Li([
+                        html.Strong("Assistant Track (ASST) - Assistenzausbildung"), html.Br(),
+                        "Example professions: Pflegehelfer/in (Nurse Assistant), Altenpflegehelfer/in (Geriatric Nurse Care), Solaranlagenmonteur/in (Solar Installer), Technische/r Assistent/in (Technical Assistant)"
+                    ]),
+                    html.Li([
+                        html.Strong("Nursing Degree (NURSE) - Krankenpflegeausbildung"), html.Br(),
+                        "Example professions: Krankenschwester/Krankenpfleger (Nurse), Gesundheits- und Krankenpfleger/in (Healthcare and Nursing Professional)"
+                    ]),
+                    html.Li([
+                        html.Strong("Trade Program (TRADE) - Handwerksausbildung"), html.Br(),
+                        "Example professions: Mechatroniker/in (Mechatronics Engineer), Klempner/in (Plumber), Elektriker/in (Electrician), Schreiner/in (Carpenter)"
+                    ])
+                ]),
+                
+                html.P([
+                    "Salary reference resources:"
+                ]),
+                html.Ul([
+                    html.Li(html.A("German Government Earnings Atlas (Entgeltatlas)", href="https://web.arbeitsagentur.de/entgeltatlas/beruf/134712", target="_blank")),
+                    html.Li(html.A("StepStone Salary Data for Elektroniker", href="https://www.stepstone.de/gehalt/Elektroniker-in.html", target="_blank")),
+                    html.Li(html.A("JobVector Salary Information", href="https://www.jobvector.de/gehalt/Elektroniker/", target="_blank")),
+                    html.Li(html.A("Gehalt.de Profession Data", href="https://www.gehalt.de/beruf/elektroniker-elektronikerin", target="_blank"))
+                ]),
+                
+                html.P([
+                    "Additional salary information for other professions can be found by searching these and similar websites with the German profession names listed above."
+                ]),
             ], style={'padding': '20px'})
         ]),
         
@@ -317,8 +381,8 @@ app.layout = html.Div([
                                 id="program-type",
                                 options=[
                                     {'label': 'University', 'value': 'University'},
-                                    {'label': 'TVET', 'value': 'TVET'},
-                                    {'label': 'Labor', 'value': 'Labor'}
+                                    {'label': 'Nurse', 'value': 'Nurse'},
+                                    {'label': 'Trade', 'value': 'Trade'}
                                 ],
                                 value="University",
                                 labelStyle={'display': 'block', 'marginBottom': '10px'},
@@ -381,7 +445,7 @@ app.layout = html.Div([
                                         dcc.Input(
                                             id="ba-std", 
                                             type="number", 
-                                            value=13000, 
+                                            value=6000, 
                                             min=0, 
                                             step=100,
                                             style={'width': '100%'}
@@ -391,7 +455,7 @@ app.layout = html.Div([
                                         dcc.Input(
                                             id="ba-growth", 
                                             type="number", 
-                                            value=2.0, 
+                                            value=3.0, 
                                             min=0, 
                                             max=20, 
                                             step=0.1,
@@ -428,7 +492,7 @@ app.layout = html.Div([
                                         dcc.Input(
                                             id="ma-std", 
                                             type="number", 
-                                            value=15000, 
+                                            value=6600, 
                                             min=0, 
                                             step=100,
                                             style={'width': '100%'}
@@ -438,7 +502,54 @@ app.layout = html.Div([
                                         dcc.Input(
                                             id="ma-growth", 
                                             type="number", 
-                                            value=3.0, 
+                                            value=4.0, 
+                                            min=0, 
+                                            max=20, 
+                                            step=0.1,
+                                            style={'width': '100%'}
+                                        )
+                                    ], style={'width': '20%', 'display': 'inline-block'}),
+                                ], style={'marginBottom': '10px'}),
+                                
+                                # Assistant row
+                                html.Div([
+                                    html.Div([html.Label("Assistant Track (ASST)")], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([
+                                        dcc.Input(
+                                            id="asst-pct", 
+                                            type="number", 
+                                            value=25, 
+                                            min=0, 
+                                            max=100, 
+                                            step=1,
+                                            style={'width': '100%'}
+                                        )
+                                    ], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([
+                                        dcc.Input(
+                                            id="asst-salary", 
+                                            type="number", 
+                                            value=31500, 
+                                            min=0, 
+                                            step=100,
+                                            style={'width': '100%'}
+                                        )
+                                    ], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([
+                                        dcc.Input(
+                                            id="asst-std", 
+                                            type="number", 
+                                            value=2800, 
+                                            min=0, 
+                                            step=100,
+                                            style={'width': '100%'}
+                                        )
+                                    ], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([
+                                        dcc.Input(
+                                            id="asst-growth", 
+                                            type="number", 
+                                            value=0.5, 
                                             min=0, 
                                             max=20, 
                                             step=0.1,
@@ -465,7 +576,7 @@ app.layout = html.Div([
                                         dcc.Input(
                                             id="nurse-salary", 
                                             type="number", 
-                                            value=44000, 
+                                            value=40000, 
                                             min=0, 
                                             step=100,
                                             style={'width': '100%'}
@@ -475,7 +586,7 @@ app.layout = html.Div([
                                         dcc.Input(
                                             id="nurse-std", 
                                             type="number", 
-                                            value=8400, 
+                                            value=4000, 
                                             min=0, 
                                             step=100,
                                             style={'width': '100%'}
@@ -485,7 +596,7 @@ app.layout = html.Div([
                                         dcc.Input(
                                             id="nurse-growth", 
                                             type="number", 
-                                            value=1.0, 
+                                            value=2.0, 
                                             min=0, 
                                             max=20, 
                                             step=0.1,
@@ -494,14 +605,14 @@ app.layout = html.Div([
                                     ], style={'width': '20%', 'display': 'inline-block'}),
                                 ], style={'marginBottom': '10px'}),
                                 
-                                # Vocational row
+                                # Trade row
                                 html.Div([
-                                    html.Div([html.Label("Vocational (VOC)")], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([html.Label("Trade (TRADE)")], style={'width': '20%', 'display': 'inline-block'}),
                                     html.Div([
                                         dcc.Input(
-                                            id="voc-pct", 
+                                            id="trade-pct", 
                                             type="number", 
-                                            value=25, 
+                                            value=0, 
                                             min=0, 
                                             max=100, 
                                             step=1,
@@ -510,9 +621,9 @@ app.layout = html.Div([
                                     ], style={'width': '20%', 'display': 'inline-block'}),
                                     html.Div([
                                         dcc.Input(
-                                            id="voc-salary", 
+                                            id="trade-salary", 
                                             type="number", 
-                                            value=31500, 
+                                            value=35000, 
                                             min=0, 
                                             step=100,
                                             style={'width': '100%'}
@@ -520,9 +631,9 @@ app.layout = html.Div([
                                     ], style={'width': '20%', 'display': 'inline-block'}),
                                     html.Div([
                                         dcc.Input(
-                                            id="voc-std", 
+                                            id="trade-std", 
                                             type="number", 
-                                            value=4800, 
+                                            value=5000, 
                                             min=0, 
                                             step=100,
                                             style={'width': '100%'}
@@ -530,9 +641,9 @@ app.layout = html.Div([
                                     ], style={'width': '20%', 'display': 'inline-block'}),
                                     html.Div([
                                         dcc.Input(
-                                            id="voc-growth", 
+                                            id="trade-growth", 
                                             type="number", 
-                                            value=1.0, 
+                                            value=2, 
                                             min=0, 
                                             max=20, 
                                             step=0.1,
@@ -588,52 +699,7 @@ app.layout = html.Div([
                                     ], style={'width': '20%', 'display': 'inline-block'}),
                                 ], style={'marginBottom': '10px'}),
                                 
-                                # Labor Degree row
-                                html.Div([
-                                    html.Div([html.Label("Labor Degree")], style={'width': '20%', 'display': 'inline-block'}),
-                                    html.Div([
-                                        dcc.Input(
-                                            id="labor-pct", 
-                                            type="number", 
-                                            value=0, 
-                                            min=0, 
-                                            max=100, 
-                                            step=1,
-                                            style={'width': '100%'}
-                                        )
-                                    ], style={'width': '20%', 'display': 'inline-block'}),
-                                    html.Div([
-                                        dcc.Input(
-                                            id="labor-salary", 
-                                            type="number", 
-                                            value=35000, 
-                                            min=0, 
-                                            step=100,
-                                            style={'width': '100%'}
-                                        )
-                                    ], style={'width': '20%', 'display': 'inline-block'}),
-                                    html.Div([
-                                        dcc.Input(
-                                            id="labor-std", 
-                                            type="number", 
-                                            value=5000, 
-                                            min=0, 
-                                            step=100,
-                                            style={'width': '100%'}
-                                        )
-                                    ], style={'width': '20%', 'display': 'inline-block'}),
-                                    html.Div([
-                                        dcc.Input(
-                                            id="labor-growth", 
-                                            type="number", 
-                                            value=2, 
-                                            min=0, 
-                                            max=20, 
-                                            step=0.1,
-                                            style={'width': '100%'}
-                                        )
-                                    ], style={'width': '20%', 'display': 'inline-block'}),
-                                ], style={'marginBottom': '10px'}),
+            
                                 
                                 html.Div(id="degree-sum-warning", style={'color': 'red', 'marginTop': '10px', 'textAlign': 'center'})
                             ])
@@ -690,8 +756,8 @@ app.layout = html.Div([
                             html.Label("Preset Scenarios:"),
                             dcc.Dropdown(
                                 id="preset-scenario",
-                                options=[{'label': k, 'value': k} for k in preset_scenarios.keys()],
-                                value="Baseline",
+                                options=[{'label': preset_scenarios[k]['name'], 'value': k} for k in preset_scenarios.keys()],
+                                value="university_baseline",
                                 placeholder="Select a preset scenario (optional)"
                             ),
                             html.Div(id="preset-description", style={'color': '#666', 'fontSize': '0.9em', 'marginTop': '5px'})
@@ -1135,7 +1201,7 @@ app.layout = html.Div([
     ]),
     
     dcc.Store(id='simulation-results-store'),
-    dcc.Store(id='saved-scenarios-store', data={"scenarios": []})
+    dcc.Store(id='saved-scenarios-store', data={})
 ])
 
 # Callback to toggle the custom degree section visibility
@@ -1154,28 +1220,25 @@ def toggle_custom_degree_section(distribution_type):
     Output("degree-sum-warning", "children"),
     [Input("ba-pct", "value"),
      Input("ma-pct", "value"),
-     Input("voc-pct", "value"),
+     Input("asst-pct", "value"),
      Input("nurse-pct", "value"),
      Input("na-pct", "value"),
-     Input("labor-pct", "value")]
+     Input("trade-pct", "value")]
 )
-def validate_degree_sum(ba_pct, ma_pct, voc_pct, nurse_pct, na_pct, labor_pct):
-    total = ba_pct + ma_pct + voc_pct + nurse_pct + na_pct + labor_pct
-    if total == 0:
-        return "Error: At least one degree type must have a percentage greater than 0."
-    elif total != 100:
-        return f"Warning: Percentages sum to {total}%, not 100%. Values will be normalized."
-    else:
-        return ""
+def validate_degree_sum(ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct):
+    total = sum(filter(None, [ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct]))
+    if total != 100:
+        return html.Div(f"Warning: Degree percentages sum to {total}%, not 100%", style={'color': 'red'})
+    return ""
 
 # Callback to update sliders when a preset is selected
 @app.callback(
     [Output("ba-pct", "value"),
      Output("ma-pct", "value"),
-     Output("voc-pct", "value"),
+     Output("asst-pct", "value"),
      Output("nurse-pct", "value"),
      Output("na-pct", "value"),
-     Output("labor-pct", "value"),
+     Output("trade-pct", "value"),
      Output("degree-distribution-type", "value"),
      Output("preset-description", "children")],
     [Input("preset-scenario", "value"),
@@ -1189,22 +1252,22 @@ def update_from_preset(preset_name, program_type):
     if preset_name is None or preset_name not in preset_scenarios:
         if program_type == 'University':
             # Default to Baseline for University
-            preset_name = 'Baseline'
-        elif program_type == 'TVET':
-            # Default to TVET Baseline for TVET
-            preset_name = 'TVET Baseline'
+            preset_name = 'university_baseline'
+        elif program_type == 'Nurse':
+            # Default to Nurse Baseline for Nurse
+            preset_name = 'nurse_baseline'
         else:
-            # Default to Labor Baseline for Labor
-            preset_name = 'Labor Baseline'
+            # Default to Trade Baseline for Trade
+            preset_name = 'trade_baseline'
     
     # If program type changed and we have a preset that's better suited for the new program type
     if triggered_id == 'program-type':
-        if program_type == 'University' and preset_name in ['TVET Baseline', 'TVET Conservative', 'TVET Optimistic', 'Labor Baseline', 'Labor Conservative', 'Labor Optimistic']:
-            preset_name = 'Baseline'
-        elif program_type == 'TVET' and preset_name in ['Baseline', 'Conservative', 'Optimistic', 'Labor Baseline', 'Labor Conservative', 'Labor Optimistic']:
-            preset_name = 'TVET Baseline'
-        elif program_type == 'Labor' and preset_name in ['Baseline', 'Conservative', 'Optimistic', 'TVET Baseline', 'TVET Conservative', 'TVET Optimistic']:
-            preset_name = 'Labor Baseline'
+        if program_type == 'University' and preset_name in ['nurse_baseline', 'nurse_conservative', 'nurse_optimistic', 'trade_baseline', 'trade_conservative', 'trade_optimistic']:
+            preset_name = 'university_baseline'
+        elif program_type == 'Nurse' and preset_name in ['baseline', 'conservative', 'optimistic', 'trade_baseline', 'trade_conservative', 'trade_optimistic']:
+            preset_name = 'nurse_baseline'
+        elif program_type == 'Trade' and preset_name in ['baseline', 'conservative', 'optimistic', 'nurse_baseline', 'nurse_conservative', 'nurse_optimistic']:
+            preset_name = 'trade_baseline'
     
     # Get the preset
     preset = preset_scenarios[preset_name]
@@ -1214,10 +1277,10 @@ def update_from_preset(preset_name, program_type):
     return (
         degrees.get('BA', 0) * 100, 
         degrees.get('MA', 0) * 100, 
-        degrees.get('VOC', 0) * 100,
+        degrees.get('ASST', 0) * 100,
         degrees.get('NURSE', 0) * 100,
         degrees.get('NA', 0) * 100,
-        degrees.get('LABOR', 0) * 100,
+        degrees.get('TRADE', 0) * 100,
         "custom",  # Switch to custom mode
         preset['description']
     )
@@ -1231,28 +1294,28 @@ def update_from_preset(preset_name, program_type):
      State("degree-distribution-type", "value"),
      State("ba-pct", "value"),
      State("ma-pct", "value"),
-     State("voc-pct", "value"),
+     State("asst-pct", "value"),
      State("nurse-pct", "value"),
      State("na-pct", "value"),
-     State("labor-pct", "value"),
+     State("trade-pct", "value"),
      State("ba-salary", "value"),
      State("ba-std", "value"),
      State("ba-growth", "value"),
      State("ma-salary", "value"),
      State("ma-std", "value"),
      State("ma-growth", "value"),
-     State("voc-salary", "value"),
-     State("voc-std", "value"),
-     State("voc-growth", "value"),
+     State("asst-salary", "value"),
+     State("asst-std", "value"),
+     State("asst-growth", "value"),
      State("nurse-salary", "value"),
      State("nurse-std", "value"),
      State("nurse-growth", "value"),
      State("na-salary", "value"),
      State("na-std", "value"),
      State("na-growth", "value"),
-     State("labor-salary", "value"),
-     State("labor-std", "value"),
-     State("labor-growth", "value"),
+     State("trade-salary", "value"),
+     State("trade-std", "value"),
+     State("trade-growth", "value"),
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
@@ -1262,10 +1325,10 @@ def update_from_preset(preset_name, program_type):
      State("inflation-rate", "value"),
      State("leave-labor-force-prob", "value")]
 )
-def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, voc_pct, nurse_pct, na_pct, labor_pct,
+def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
                    ba_salary, ba_std, ba_growth, ma_salary, ma_std, ma_growth, 
-                   voc_salary, voc_std, voc_growth, nurse_salary, nurse_std, nurse_growth,
-                   na_salary, na_std, na_growth, labor_salary, labor_std, labor_growth,
+                   asst_salary, asst_std, asst_growth, nurse_salary, nurse_std, nurse_growth,
+                   na_salary, na_std, na_growth, trade_salary, trade_std, trade_growth,
                    isa_percentage, isa_threshold, isa_cap,
                    num_students, num_sims, unemployment_rate, inflation_rate, 
                    leave_labor_force_prob):
@@ -1284,10 +1347,10 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, voc
     # Convert percentages to decimals
     ba_pct_decimal = ba_pct / 100.0
     ma_pct_decimal = ma_pct / 100.0
-    voc_pct_decimal = voc_pct / 100.0
+    asst_pct_decimal = asst_pct / 100.0
     nurse_pct_decimal = nurse_pct / 100.0
     na_pct_decimal = na_pct / 100.0
-    labor_pct_decimal = labor_pct / 100.0
+    trade_pct_decimal = trade_pct / 100.0
     
     # Run the simulation
     try:
@@ -1301,18 +1364,18 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, voc
             ma_salary=ma_salary,
             ma_std=ma_std,
             ma_growth=ma_growth,
-            voc_salary=voc_salary,
-            voc_std=voc_std,
-            voc_growth=voc_growth,
+            asst_salary=asst_salary,
+            asst_std=asst_std,
+            asst_growth=asst_growth,
             nurse_salary=nurse_salary,
             nurse_std=nurse_std,
             nurse_growth=nurse_growth,
             na_salary=na_salary,
             na_std=na_std,
             na_growth=na_growth,
-            labor_salary=labor_salary,
-            labor_std=labor_std,
-            labor_growth=labor_growth,
+            trade_salary=trade_salary,
+            trade_std=trade_std,
+            trade_growth=trade_growth,
             isa_percentage=isa_percentage,
             isa_threshold=isa_threshold,
             isa_cap=isa_cap,
@@ -1321,11 +1384,11 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, voc
             leave_labor_force_probability=leave_labor_force_prob,
             ba_pct=ba_pct_decimal,
             ma_pct=ma_pct_decimal,
-            voc_pct=voc_pct_decimal,
+            asst_pct=asst_pct_decimal,
             nurse_pct=nurse_pct_decimal,
             na_pct=na_pct_decimal,
-            labor_pct=labor_pct_decimal,
-            scenario=scenario,
+            trade_pct=trade_pct_decimal,
+            scenario='custom',
             new_malengo_fee=True
         )
         
@@ -1355,7 +1418,9 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, voc
             'leave_labor_force_probability': results['leave_labor_force_probability'],
             'custom_degrees': results['custom_degrees'],
             'degree_counts': results['degree_counts'],
-            'degree_pcts': results['degree_pcts']
+            'degree_pcts': results['degree_pcts'],
+            'initial_unemployment_rate': unemployment_rate,
+            'initial_inflation_rate': inflation_rate
         }
         
         return "Simulation completed!", serializable_results
@@ -1508,15 +1573,6 @@ def update_irr_distribution(results):
         y=quantile_values,
         marker_color='rgb(158,202,225)',
         name='Investor IRR Quantiles'
-    ))
-    
-    # Add a horizontal line for investor IRR
-    fig.add_trace(go.Scatter(
-        x=quantile_labels,
-        y=[results['investor_IRR']] * len(quantile_labels),
-        mode='lines',
-        name='Average Investor IRR',
-        line=dict(color='rgb(26, 118, 255)', width=3)
     ))
     
     # Add a horizontal line for the overall IRR (less prominent)
@@ -1770,8 +1826,8 @@ def update_scenario_info(results):
                 html.Tr([html.Td("ISA Percentage:"), html.Td(f"{results['isa_percentage']*100:.1f}%")]),
                 html.Tr([html.Td("ISA Threshold:"), html.Td(f"${results['isa_threshold']:.2f}")]),
                 html.Tr([html.Td("ISA Cap:"), html.Td(f"${results['isa_cap']:.2f}")]),
-                html.Tr([html.Td("Initial Unemployment:"), html.Td(f"{results.get('initial_unemployment_rate', 0.08)*100:.1f}%")]),
-                html.Tr([html.Td("Initial Inflation:"), html.Td(f"{results.get('initial_inflation_rate', 0.02)*100:.1f}%")]),
+                html.Tr([html.Td("Initial Unemployment:"), html.Td(f"{results['initial_unemployment_rate']*100:.1f}%")]),
+                html.Tr([html.Td("Initial Inflation:"), html.Td(f"{results['initial_inflation_rate']*100:.1f}%")]),
                 html.Tr([html.Td("Leave Labor Force Probability:"), html.Td(f"{results['leave_labor_force_probability']*100:.1f}%")]),
             ])
         ], className="table table-striped table-sm")
@@ -1818,9 +1874,9 @@ def update_degree_info(results):
 def update_isa_params(program_type):
     if program_type == 'University':
         return 14, 27000, 72500
-    elif program_type == 'TVET':
+    elif program_type == 'Nurse':
         return 12, 27000, 49950
-    elif program_type == 'Labor':
+    elif program_type == 'Trade':
         return 12, 27000, 45000  # Changed from 10% to 12%
     else:
         return 12, 27000, 50000  # Default values
@@ -1841,8 +1897,8 @@ def manage_saved_scenarios(save_clicks, clear_clicks, scenario_name, current_res
         # Initial load - return empty list
         return {}, []
     
-    # Initialize saved_scenarios if it doesn't exist
-    if saved_scenarios is None:
+    # Initialize saved_scenarios if it doesn't exist or is not a dict
+    if saved_scenarios is None or not isinstance(saved_scenarios, dict):
         saved_scenarios = {}
     
     # Handle clear button click
@@ -1890,8 +1946,12 @@ def manage_saved_scenarios(save_clicks, clear_clicks, scenario_name, current_res
     [State("saved-scenarios-store", "data")]
 )
 def compare_scenarios(n_clicks, saved_scenarios):
-    if not n_clicks or not saved_scenarios:
+    if not n_clicks:
         return html.Div("Save scenarios to compare them.")
+    
+    # Initialize saved_scenarios if it doesn't exist or is not a dict
+    if saved_scenarios is None or not isinstance(saved_scenarios, dict):
+        saved_scenarios = {}
     
     # Get all saved scenarios
     selected_scenarios = []
@@ -2020,10 +2080,10 @@ def compare_scenarios(n_clicks, saved_scenarios):
             'Scenario': scenario['name'],
             'BA': f"{degree_pcts.get('BA', 0)*100:.1f}%",
             'MA': f"{degree_pcts.get('MA', 0)*100:.1f}%",
-            'VOC': f"{degree_pcts.get('VOC', 0)*100:.1f}%",
+            'ASST': f"{degree_pcts.get('ASST', 0)*100:.1f}%",
             'NURSE': f"{degree_pcts.get('NURSE', 0)*100:.1f}%",
             'NA': f"{degree_pcts.get('NA', 0)*100:.1f}%",
-            'LABOR': f"{degree_pcts.get('LABOR', 0)*100:.1f}%"
+            'TRADE': f"{degree_pcts.get('TRADE', 0)*100:.1f}%"
         })
     
     degree_table = dash_table.DataTable(
@@ -2061,16 +2121,16 @@ def compare_scenarios(n_clicks, saved_scenarios):
      State("program-type", "value"),
      State("ba-pct", "value"),
      State("ma-pct", "value"),
-     State("voc-pct", "value"),
+     State("asst-pct", "value"),
      State("nurse-pct", "value"),
      State("na-pct", "value"),
-     State("labor-pct", "value"),
+     State("trade-pct", "value"),
      State("ba-salary", "value"),
      State("ma-salary", "value"),
-     State("voc-salary", "value"),
+     State("asst-salary", "value"),
      State("nurse-salary", "value"),
      State("na-salary", "value"),
-     State("labor-salary", "value"),
+     State("trade-salary", "value"),
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
@@ -2079,8 +2139,8 @@ def compare_scenarios(n_clicks, saved_scenarios):
 )
 def run_monte_carlo_simulation(n_clicks, num_sims, complexity, 
                               unemployment_range, leave_labor_force_range, wage_penalty_range,
-                              program_type, ba_pct, ma_pct, voc_pct, nurse_pct, na_pct, labor_pct,
-                              ba_salary, ma_salary, voc_salary, nurse_salary, na_salary, labor_salary,
+                              program_type, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
+                              ba_salary, ma_salary, asst_salary, nurse_salary, na_salary, trade_salary,
                               isa_percentage, isa_threshold, isa_cap,
                               num_students, inflation_rate):
     if not n_clicks:
@@ -2093,9 +2153,9 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
     if isa_percentage is None:
         if program_type == 'University':
             isa_percentage = 14
-        elif program_type == 'TVET':
+        elif program_type == 'Nurse':
             isa_percentage = 12
-        elif program_type == 'Labor':
+        elif program_type == 'Trade':
             isa_percentage = 12  # Changed from 10 to 12
         else:
             isa_percentage = 12
@@ -2106,9 +2166,9 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
     if isa_cap is None:
         if program_type == 'University':
             isa_cap = 72500
-        elif program_type == 'TVET':
+        elif program_type == 'Nurse':
             isa_cap = 49950
-        elif program_type == 'Labor':
+        elif program_type == 'Trade':
             isa_cap = 45000
         else:
             isa_cap = 50000
@@ -2119,18 +2179,18 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
     # Set default values for degree percentages if None
     if ba_pct is None: ba_pct = 0
     if ma_pct is None: ma_pct = 0
-    if voc_pct is None: voc_pct = 0
+    if asst_pct is None: asst_pct = 0
     if nurse_pct is None: nurse_pct = 0
     if na_pct is None: na_pct = 0
-    if labor_pct is None: labor_pct = 0
+    if trade_pct is None: trade_pct = 0
     
     # Set default values for salary parameters if None
     if ba_salary is None: ba_salary = 41300
     if ma_salary is None: ma_salary = 46709
-    if voc_salary is None: voc_salary = 31500
-    if nurse_salary is None: nurse_salary = 44000
+    if asst_salary is None: asst_salary = 31500
+    if nurse_salary is None: nurse_salary = 40000
     if na_salary is None: na_salary = 2200
-    if labor_salary is None: labor_salary = 35000
+    if trade_salary is None: trade_salary = 35000
     
     # Prepare parameters for simulation
     params = {
@@ -2183,10 +2243,10 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
         penalty_factor = 1 + (params['adjusted_wage_penalty'] / 100.0)
         adjusted_ba_salary = ba_salary * penalty_factor
         adjusted_ma_salary = ma_salary * penalty_factor
-        adjusted_voc_salary = voc_salary * penalty_factor
+        adjusted_asst_salary = asst_salary * penalty_factor
         adjusted_nurse_salary = nurse_salary * penalty_factor
         adjusted_na_salary = na_salary * penalty_factor
-        adjusted_labor_salary = labor_salary * penalty_factor
+        adjusted_trade_salary = trade_salary * penalty_factor
         
         # Run simulation with current parameter set
         sim_result = run_simple_simulation(
@@ -2196,16 +2256,16 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
             scenario='custom',
             ba_pct=ba_pct / 100.0,
             ma_pct=ma_pct / 100.0,
-            voc_pct=voc_pct / 100.0,
+            asst_pct=asst_pct / 100.0,
             nurse_pct=nurse_pct / 100.0,
             na_pct=na_pct / 100.0,
-            labor_pct=labor_pct / 100.0,
+            trade_pct=trade_pct / 100.0,
             ba_salary=adjusted_ba_salary,
             ma_salary=adjusted_ma_salary,
-            voc_salary=adjusted_voc_salary,
+            asst_salary=adjusted_asst_salary,
             nurse_salary=adjusted_nurse_salary,
             na_salary=adjusted_na_salary,
-            labor_salary=adjusted_labor_salary,
+            trade_salary=adjusted_trade_salary,
             isa_percentage=(isa_percentage or 12) / 100.0,
             isa_threshold=isa_threshold or 27000,
             isa_cap=isa_cap or 50000,
@@ -2293,10 +2353,10 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
                         html.Td(f"${ma_salary * (1 + (min_wage_penalty+20)/100):,.0f} to ${ma_salary * (1 + (max_wage_penalty+20)/100):,.0f}")
                     ]),
                     html.Tr([
-                        html.Td("VOC"),
-                        html.Td(f"{voc_pct}%"),
-                        html.Td(f"${voc_salary:,.0f}"),
-                        html.Td(f"${voc_salary * (1 + (min_wage_penalty+20)/100):,.0f} to ${voc_salary * (1 + (max_wage_penalty+20)/100):,.0f}")
+                        html.Td("ASST"),
+                        html.Td(f"{asst_pct}%"),
+                        html.Td(f"${asst_salary:,.0f}"),
+                        html.Td(f"${asst_salary * (1 + (min_wage_penalty+20)/100):,.0f} to ${asst_salary * (1 + (max_wage_penalty+20)/100):,.0f}")
                     ]),
                     html.Tr([
                         html.Td("NURSE"),
@@ -2305,10 +2365,10 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
                         html.Td(f"${nurse_salary * (1 + (min_wage_penalty+20)/100):,.0f} to ${nurse_salary * (1 + (max_wage_penalty+20)/100):,.0f}")
                     ]),
                     html.Tr([
-                        html.Td("LABOR"),
-                        html.Td(f"{labor_pct}%"),
-                        html.Td(f"${labor_salary:,.0f}"),
-                        html.Td(f"${labor_salary * (1 + (min_wage_penalty+20)/100):,.0f} to ${labor_salary * (1 + (max_wage_penalty+20)/100):,.0f}")
+                        html.Td("TRADE"),
+                        html.Td(f"{trade_pct}%"),
+                        html.Td(f"${trade_salary:,.0f}"),
+                        html.Td(f"${trade_salary * (1 + (min_wage_penalty+20)/100):,.0f} to ${trade_salary * (1 + (max_wage_penalty+20)/100):,.0f}")
                     ]),
                     html.Tr([
                         html.Td("NA"),
@@ -2650,16 +2710,16 @@ def validate_weight_sum(weight1, weight2, weight3):
      State("program-type", "value"),
      State("ba-pct", "value"),
      State("ma-pct", "value"),
-     State("voc-pct", "value"),
+     State("asst-pct", "value"),
      State("nurse-pct", "value"),
      State("na-pct", "value"),
-     State("labor-pct", "value"),
+     State("trade-pct", "value"),
      State("ba-salary", "value"),
      State("ma-salary", "value"),
-     State("voc-salary", "value"),
+     State("asst-salary", "value"),
      State("nurse-salary", "value"),
      State("na-salary", "value"),
-     State("labor-salary", "value"),
+     State("trade-salary", "value"),
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
@@ -2670,8 +2730,8 @@ def run_blended_monte_carlo(n_clicks, num_sims,
                            scenario1_type, scenario2_type, scenario3_type,
                            scenario1_weight, scenario2_weight, scenario3_weight,
                            leave_labor_force_range, wage_penalty_range,
-                           program_type, ba_pct, ma_pct, voc_pct, nurse_pct, na_pct, labor_pct,
-                           ba_salary, ma_salary, voc_salary, nurse_salary, na_salary, labor_salary,
+                           program_type, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
+                           ba_salary, ma_salary, asst_salary, nurse_salary, na_salary, trade_salary,
                            isa_percentage, isa_threshold, isa_cap,
                            num_students, inflation_rate):
     if n_clicks == 0:
@@ -2688,9 +2748,9 @@ def run_blended_monte_carlo(n_clicks, num_sims,
     if isa_percentage is None:
         if program_type == 'University':
             isa_percentage = 14
-        elif program_type == 'TVET':
+        elif program_type == 'Nurse':
             isa_percentage = 12
-        elif program_type == 'Labor':
+        elif program_type == 'Trade':
             isa_percentage = 12  # Changed from 10 to 12
         else:
             isa_percentage = 12
@@ -2701,9 +2761,9 @@ def run_blended_monte_carlo(n_clicks, num_sims,
     if isa_cap is None:
         if program_type == 'University':
             isa_cap = 72500
-        elif program_type == 'TVET':
+        elif program_type == 'Nurse':
             isa_cap = 49950
-        elif program_type == 'Labor':
+        elif program_type == 'Trade':
             isa_cap = 45000
         else:
             isa_cap = 50000
@@ -2714,18 +2774,18 @@ def run_blended_monte_carlo(n_clicks, num_sims,
     # Set default values for degree percentages if None
     if ba_pct is None: ba_pct = 0
     if ma_pct is None: ma_pct = 0
-    if voc_pct is None: voc_pct = 0
+    if asst_pct is None: asst_pct = 0
     if nurse_pct is None: nurse_pct = 0
     if na_pct is None: na_pct = 0
-    if labor_pct is None: labor_pct = 0
+    if trade_pct is None: trade_pct = 0
     
     # Set default values for salary parameters if None
     if ba_salary is None: ba_salary = 41300
     if ma_salary is None: ma_salary = 46709
-    if voc_salary is None: voc_salary = 31500
-    if nurse_salary is None: nurse_salary = 44000
+    if asst_salary is None: asst_salary = 31500
+    if nurse_salary is None: nurse_salary = 40000
     if na_salary is None: na_salary = 2200
-    if labor_salary is None: labor_salary = 35000
+    if trade_salary is None: trade_salary = 35000
     
     # Normalize weights to sum to 1
     total_weight = scenario1_weight + scenario2_weight + scenario3_weight
@@ -2743,16 +2803,16 @@ def run_blended_monte_carlo(n_clicks, num_sims,
         'num_sims': 5,  # Use minimal simulations per run for speed
         'ba_pct': (ba_pct or 0) / 100.0,
         'ma_pct': (ma_pct or 0) / 100.0,
-        'voc_pct': (voc_pct or 0) / 100.0,
+        'asst_pct': (asst_pct or 0) / 100.0,
         'nurse_pct': (nurse_pct or 0) / 100.0,
         'na_pct': (na_pct or 0) / 100.0,
-        'labor_pct': (labor_pct or 0) / 100.0,
+        'trade_pct': (trade_pct or 0) / 100.0,
         'ba_salary': ba_salary or 41300,
         'ma_salary': ma_salary or 46709,
-        'voc_salary': voc_salary or 31500,
-        'nurse_salary': nurse_salary or 44000,
+        'asst_salary': asst_salary or 31500,
+        'nurse_salary': nurse_salary or 40000,
         'na_salary': na_salary or 2200,
-        'labor_salary': labor_salary or 35000,
+        'trade_salary': trade_salary or 35000,
         'isa_percentage': (isa_percentage or 12) / 100.0,
         'isa_threshold': isa_threshold or 27000,
         'isa_cap': isa_cap or 50000,
@@ -2786,10 +2846,10 @@ def run_blended_monte_carlo(n_clicks, num_sims,
         
         sim_params['ba_salary'] = ba_salary * penalty_factor
         sim_params['ma_salary'] = ma_salary * penalty_factor
-        sim_params['voc_salary'] = voc_salary * penalty_factor
+        sim_params['asst_salary'] = asst_salary * penalty_factor
         sim_params['nurse_salary'] = nurse_salary * penalty_factor
         sim_params['na_salary'] = na_salary * penalty_factor
-        sim_params['labor_salary'] = labor_salary * penalty_factor
+        sim_params['trade_salary'] = trade_salary * penalty_factor
         
         # Add a random seed for each simulation
         sim_params['random_seed'] = np.random.randint(1, 10000)

@@ -86,7 +86,7 @@ class Degree:
     Class representing different degree options with associated parameters.
     
     Attributes:
-        name: Identifier for the degree type (e.g., 'BA', 'MA', 'VOC', 'NURSE', 'NA')
+        name: Identifier for the degree type (e.g., 'BA', 'MA', 'ASST', 'NURSE', 'TRADE', 'NA')
         mean_earnings: Average annual earnings for graduates with this degree
         stdev: Standard deviation of earnings for this degree type
         experience_growth: Annual percentage growth in earnings due to experience
@@ -324,29 +324,29 @@ def run_simple_simulation(
     leave_labor_force_probability: float = 0.05,
     ba_pct: float = 0,
     ma_pct: float = 0, 
-    voc_pct: float = 0,
+    asst_pct: float = 0,
     nurse_pct: float = 0,
     na_pct: float = 0,
-    labor_pct: float = 0,  # New parameter for Labor degree
+    trade_pct: float = 0,  
     # Degree parameters
     ba_salary: float = 41300,
-    ba_std: float = 13000,
+    ba_std: float = 6000,
     ba_growth: float = 0.03,
     ma_salary: float = 46709,
-    ma_std: float = 15000,
+    ma_std: float = 6600,
     ma_growth: float = 0.04,
-    voc_salary: float = 31500,
-    voc_std: float = 4800,
-    voc_growth: float = 0.01,
-    nurse_salary: float = 44000,
-    nurse_std: float = 8400,
-    nurse_growth: float = 0.01,
+    asst_salary: float = 31500,
+    asst_std: float = 2800,
+    asst_growth: float = 0.005,
+    nurse_salary: float = 40000,
+    nurse_std: float = 4000,
+    nurse_growth: float = 0.02,
     na_salary: float = 2200,
     na_std: float = 640,
     na_growth: float = 0.01,
-    labor_salary: float = 35000,  # New parameter for Labor degree
-    labor_std: float = 5000,      # New parameter for Labor degree
-    labor_growth: float = 0.02,   # New parameter for Labor degree
+    trade_salary: float = 35000,  
+    trade_std: float = 3000,      
+    trade_growth: float = 0.02,   
     # ISA parameters
     isa_percentage: Optional[float] = None,
     isa_threshold: float = 27000,
@@ -358,10 +358,10 @@ def run_simple_simulation(
     limit_years: int = 10
 ) -> Dict[str, Any]:
     """
-    Run multiple simulations for University, TVET, or Labor program with simplified parameters.
+    Run multiple simulations for University, Nurse, or Trade program with simplified parameters.
     
     Parameters:
-        program_type: 'University', 'TVET', or 'Labor'
+        program_type: 'University', 'Nurse', or 'Trade'
         num_students: Number of students to simulate
         num_sims: Number of simulations to run
         scenario: Predefined scenario to use ('baseline', 'conservative', 'optimistic', or 'custom')
@@ -371,13 +371,13 @@ def run_simple_simulation(
         initial_inflation_rate: Starting inflation rate
         performance_fee_pct: Percentage of payments that goes to Malengo (old fee structure)
         leave_labor_force_probability: Probability of a student leaving the labor force after graduation
-        ba_pct, ma_pct, voc_pct, nurse_pct, na_pct, labor_pct: Custom degree distribution (if scenario='custom')
+        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct: Custom degree distribution (if scenario='custom')
         ba_salary, ba_std, ba_growth: Custom parameters for BA degree
         ma_salary, ma_std, ma_growth: Custom parameters for MA degree
-        voc_salary, voc_std, voc_growth: Custom parameters for VOC degree
+        asst_salary, asst_std, asst_growth: Custom parameters for Assistant degree
         nurse_salary, nurse_std, nurse_growth: Custom parameters for Nurse degree
         na_salary, na_std, na_growth: Custom parameters for NA degree
-        labor_salary, labor_std, labor_growth: Custom parameters for Labor degree
+        trade_salary, trade_std, trade_growth: Custom parameters for Trade degree
         isa_percentage: Custom ISA percentage (defaults based on program type)
         isa_threshold: Custom ISA threshold
         isa_cap: Custom ISA cap (defaults based on program type)
@@ -390,13 +390,15 @@ def run_simple_simulation(
         Dictionary of aggregated results from multiple simulations
     
     Predefined Scenarios:
-        - University baseline: 43% BA, 23% MA, 25% VOC, 9% NA
-        - University conservative: 30% BA, 10% MA, 40% VOC, 20% NA
-        - University optimistic: 62.5% BA, 32.5% MA, 2.5% VOC, 2.5% NA
-        - TVET baseline: 45% nurse, 45% vocational, 10% NA
-        - TVET conservative: 20% nurse, 60% vocational, 20% NA
-        - Labor baseline: 75% labor, 25% NA
-        - Labor conservative: 60% labor, 40% NA
+        - University baseline: 45% BA, 24% MA, 27% ASST, 4% NA
+        - University conservative: 30% BA, 10% MA, 40% ASST, 20% NA
+        - University optimistic: 62.5% BA, 32.5% MA, 2.5% ASST, 2.5% NA
+        - Nurse baseline: 45% nurse, 45% assistant, 10% NA
+        - Nurse conservative: 20% nurse, 60% assistant, 20% NA
+        - Nurse optimistic: 60% nurse, 40% assistant, 0% NA
+        - Trade baseline: 40% trade, 40% assistant, 20% NA
+        - Trade conservative: 20% trade, 40% assistant, 40% NA
+        - Trade optimistic: 70% trade, 20% assistant, 10% NA
     """
     # Set random seed if provided
     if random_seed is not None:
@@ -406,47 +408,47 @@ def run_simple_simulation(
     if isa_percentage is None:
         if program_type == 'University':
             isa_percentage = 0.14
-        elif program_type == 'TVET':
+        elif program_type == 'Nurse':
             isa_percentage = 0.12
-        elif program_type == 'Labor':
-            isa_percentage = 0.12  # Changed from 0.10 to 0.12 for Labor program
+        elif program_type == 'Trade':
+            isa_percentage = 0.12  
         else:
             isa_percentage = 0.12  # Default
     
     if isa_cap is None:
         if program_type == 'University':
             isa_cap = 72500
-        elif program_type == 'TVET':
+        elif program_type == 'Nurse':
             isa_cap = 49950
-        elif program_type == 'Labor':
-            isa_cap = 45000  # Lower cap for Labor program
+        elif program_type == 'Trade':
+            isa_cap = 45000  
         else:
             isa_cap = 50000  # Default
     
     # Program-specific parameters
     if program_type == 'University':
         price_per_student = 29000
-    elif program_type == 'TVET':
+    elif program_type == 'Nurse':
         price_per_student = 16650
-    elif program_type == 'Labor':
-        price_per_student = 15000  # Lower cost for Labor program
+    elif program_type == 'Trade':
+        price_per_student = 15000  
     else:
-        raise ValueError("Program type must be 'University', 'TVET', or 'Labor'")
+        raise ValueError("Program type must be 'University', 'Nurse', or 'Trade'")
     
     # Define all possible degree types with custom parameters
     base_degrees = _create_degree_definitions(
         ba_salary, ba_std, ba_growth,
         ma_salary, ma_std, ma_growth,
-        voc_salary, voc_std, voc_growth,
+        asst_salary, asst_std, asst_growth,
         nurse_salary, nurse_std, nurse_growth,
         na_salary, na_std, na_growth,
-        labor_salary, labor_std, labor_growth  # Add Labor degree parameters
+        trade_salary, trade_std, trade_growth  
     )
     
     # Set up degree distribution based on scenario
     degrees, probs = _setup_degree_distribution(
         scenario, program_type, base_degrees, leave_labor_force_probability,
-        ba_pct, ma_pct, voc_pct, nurse_pct, na_pct, labor_pct
+        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct
     )
     
     # Prepare containers for results
@@ -534,10 +536,10 @@ def run_simple_simulation(
 def _create_degree_definitions(
     ba_salary: float, ba_std: float, ba_growth: float,
     ma_salary: float, ma_std: float, ma_growth: float,
-    voc_salary: float, voc_std: float, voc_growth: float,
+    asst_salary: float, asst_std: float, asst_growth: float,
     nurse_salary: float, nurse_std: float, nurse_growth: float,
     na_salary: float, na_std: float, na_growth: float,
-    labor_salary: float, labor_std: float, labor_growth: float
+    trade_salary: float, trade_std: float, trade_growth: float
 ) -> Dict[str, Dict[str, Any]]:
     """Helper function to create degree definitions."""
     return {
@@ -555,11 +557,11 @@ def _create_degree_definitions(
             'experience_growth': ma_growth/100.0,
             'years_to_complete': 6
         },
-        'VOC': {
-            'name': 'VOC',
-            'mean_earnings': voc_salary,
-            'stdev': voc_std,
-            'experience_growth': voc_growth/100.0,
+        'ASST': {
+            'name': 'ASST',
+            'mean_earnings': asst_salary,
+            'stdev': asst_std,
+            'experience_growth': asst_growth/100.0,
             'years_to_complete': 3
         },
         'NURSE': {
@@ -576,12 +578,12 @@ def _create_degree_definitions(
             'experience_growth': na_growth/100.0,
             'years_to_complete': 4
         },
-        'LABOR': {
-            'name': 'LABOR',
-            'mean_earnings': labor_salary,
-            'stdev': labor_std,
-            'experience_growth': labor_growth/100.0,
-            'years_to_complete': 3  # Labor degree takes 3 years to complete
+        'TRADE': {
+            'name': 'TRADE',
+            'mean_earnings': trade_salary,
+            'stdev': trade_std,
+            'experience_growth': trade_growth/100.0,
+            'years_to_complete': 3  # Trade degree takes 3 years to complete
         }
     }
 
@@ -593,10 +595,10 @@ def _setup_degree_distribution(
     leave_labor_force_probability: float,
     ba_pct: float, 
     ma_pct: float, 
-    voc_pct: float, 
+    asst_pct: float, 
     nurse_pct: float, 
     na_pct: float,
-    labor_pct: float
+    trade_pct: float
 ) -> Tuple[List[Degree], List[float]]:
     """Helper function to set up degree distribution based on scenario."""
     degrees = []
@@ -604,8 +606,6 @@ def _setup_degree_distribution(
     
     if scenario == 'baseline':
         if program_type == 'University':
-            # University baseline: Updated to match simple_app.py (43% BA, 23% MA, 25% VOC, 4% NA)
-            # NA degree reduced by 5%
             degrees = [
                 Degree(
                     name=base_degrees['BA']['name'],
@@ -624,11 +624,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['VOC']['name'],
-                    mean_earnings=base_degrees['VOC']['mean_earnings'],
-                    stdev=base_degrees['VOC']['stdev'],
-                    experience_growth=base_degrees['VOC']['experience_growth'],
-                    years_to_complete=base_degrees['VOC']['years_to_complete'],
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -637,12 +637,12 @@ def _setup_degree_distribution(
                     stdev=base_degrees['NA']['stdev'],
                     experience_growth=base_degrees['NA']['experience_growth'],
                     years_to_complete=base_degrees['NA']['years_to_complete'],
-                    leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
+                    leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.45, 0.24, 0.27, 0.04]  # Adjusted to reduce NA by 5% and distribute proportionally
-        elif program_type == 'TVET':
-            # TVET baseline: 25% nurse, 60% vocational, 15% NA (updated as requested)
+            probs = [0.45, 0.24, 0.27, 0.04]  
+        elif program_type == 'Nurse':
+            
             degrees = [
                 Degree(
                     name=base_degrees['NURSE']['name'],
@@ -653,11 +653,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['VOC']['name'],
-                    mean_earnings=base_degrees['VOC']['mean_earnings'],
-                    stdev=base_degrees['VOC']['stdev'],
-                    experience_growth=base_degrees['VOC']['experience_growth'],
-                    years_to_complete=base_degrees['VOC']['years_to_complete'],
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -666,19 +666,27 @@ def _setup_degree_distribution(
                     stdev=base_degrees['NA']['stdev'],
                     experience_growth=base_degrees['NA']['experience_growth'],
                     years_to_complete=base_degrees['NA']['years_to_complete'],
-                    leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
+                    leave_labor_force_probability=1  
                 )
             ]
             probs = [0.25, 0.60, 0.15]
-        elif program_type == 'Labor':
-            # Labor baseline: 80% labor, 20% NA (reduced NA by 5%)
+        elif program_type == 'Trade':
+           
             degrees = [
                 Degree(
-                    name=base_degrees['LABOR']['name'],
-                    mean_earnings=base_degrees['LABOR']['mean_earnings'],
-                    stdev=base_degrees['LABOR']['stdev'],
-                    experience_growth=base_degrees['LABOR']['experience_growth'],
-                    years_to_complete=base_degrees['LABOR']['years_to_complete'],
+                    name=base_degrees['TRADE']['name'],
+                    mean_earnings=base_degrees['TRADE']['mean_earnings'],
+                    stdev=base_degrees['TRADE']['stdev'],
+                    experience_growth=base_degrees['TRADE']['experience_growth'],
+                    years_to_complete=base_degrees['TRADE']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -687,15 +695,14 @@ def _setup_degree_distribution(
                     stdev=base_degrees['NA']['stdev'],
                     experience_growth=base_degrees['NA']['experience_growth'],
                     years_to_complete=base_degrees['NA']['years_to_complete'],
-                    leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
+                    leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.80, 0.20]
+            probs = [0.40, 0.40, 0.20]
     
     elif scenario == 'conservative':
         if program_type == 'University':
-            # University conservative: Updated (32% BA, 11% MA, 42% VOC, 15% NA)
-            # NA degree reduced by 5%
+            # University conservative: Updated (32% BA, 11% MA, 42% ASST, 15% NA)
             degrees = [
                 Degree(
                     name=base_degrees['BA']['name'],
@@ -714,11 +721,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['VOC']['name'],
-                    mean_earnings=base_degrees['VOC']['mean_earnings'],
-                    stdev=base_degrees['VOC']['stdev'],
-                    experience_growth=base_degrees['VOC']['experience_growth'],
-                    years_to_complete=base_degrees['VOC']['years_to_complete'],
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -727,12 +734,12 @@ def _setup_degree_distribution(
                     stdev=base_degrees['NA']['stdev'],
                     experience_growth=base_degrees['NA']['experience_growth'],
                     years_to_complete=base_degrees['NA']['years_to_complete'],
-                    leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
+                    leave_labor_force_probability=1  
                 )
             ]
             probs = [0.32, 0.11, 0.42, 0.15]
-        elif program_type == 'TVET':
-            # TVET conservative: 20% nurse, 50% vocational, 30% NA (updated as requested)
+        elif program_type == 'Nurse':
+            # Nurse conservative: 20% nurse, 50% assistant, 30% NA (updated as requested)
             degrees = [
                 Degree(
                     name=base_degrees['NURSE']['name'],
@@ -743,11 +750,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['VOC']['name'],
-                    mean_earnings=base_degrees['VOC']['mean_earnings'],
-                    stdev=base_degrees['VOC']['stdev'],
-                    experience_growth=base_degrees['VOC']['experience_growth'],
-                    years_to_complete=base_degrees['VOC']['years_to_complete'],
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -756,19 +763,27 @@ def _setup_degree_distribution(
                     stdev=base_degrees['NA']['stdev'],
                     experience_growth=base_degrees['NA']['experience_growth'],
                     years_to_complete=base_degrees['NA']['years_to_complete'],
-                    leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
+                    leave_labor_force_probability=1  
                 )
             ]
             probs = [0.20, 0.50, 0.30]
-        elif program_type == 'Labor':
-            # Labor conservative: 65% labor, 35% NA (reduced NA by 5%)
+        elif program_type == 'Trade':
+
             degrees = [
                 Degree(
-                    name=base_degrees['LABOR']['name'],
-                    mean_earnings=base_degrees['LABOR']['mean_earnings'],
-                    stdev=base_degrees['LABOR']['stdev'],
-                    experience_growth=base_degrees['LABOR']['experience_growth'],
-                    years_to_complete=base_degrees['LABOR']['years_to_complete'],
+                    name=base_degrees['TRADE']['name'],
+                    mean_earnings=base_degrees['TRADE']['mean_earnings'],
+                    stdev=base_degrees['TRADE']['stdev'],
+                    experience_growth=base_degrees['TRADE']['experience_growth'],
+                    years_to_complete=base_degrees['TRADE']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -777,14 +792,14 @@ def _setup_degree_distribution(
                     stdev=base_degrees['NA']['stdev'],
                     experience_growth=base_degrees['NA']['experience_growth'],
                     years_to_complete=base_degrees['NA']['years_to_complete'],
-                    leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
+                    leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.65, 0.35]
+            probs = [0.2, 0.4, 0.4]
     
     elif scenario == 'optimistic':
         if program_type == 'University':
-            # Optimistic scenario (63% BA, 33% MA, 2.5% VOC, 1.5% NA) - reduced NA by 1%
+            # Optimistic scenario (63% BA, 33% MA, 2.5% ASST, 1.5% NA) - reduced NA by 1%
             degrees = [
                 Degree(
                     name=base_degrees['BA']['name'],
@@ -803,11 +818,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['VOC']['name'],
-                    mean_earnings=base_degrees['VOC']['mean_earnings'],
-                    stdev=base_degrees['VOC']['stdev'],
-                    experience_growth=base_degrees['VOC']['experience_growth'],
-                    years_to_complete=base_degrees['VOC']['years_to_complete'],
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -816,12 +831,12 @@ def _setup_degree_distribution(
                     stdev=base_degrees['NA']['stdev'],
                     experience_growth=base_degrees['NA']['experience_growth'],
                     years_to_complete=base_degrees['NA']['years_to_complete'],
-                    leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
+                    leave_labor_force_probability=1  
                 )
             ]
             probs = [0.63, 0.33, 0.025, 0.015]
-        elif program_type == 'TVET':
-            # TVET optimistic scenario (60% nurse, 40% vocational, 0% NA)
+        elif program_type == 'Nurse':
+            
             degrees = [
                 Degree(
                     name=base_degrees['NURSE']['name'],
@@ -832,24 +847,32 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['VOC']['name'],
-                    mean_earnings=base_degrees['VOC']['mean_earnings'],
-                    stdev=base_degrees['VOC']['stdev'],
-                    experience_growth=base_degrees['VOC']['experience_growth'],
-                    years_to_complete=base_degrees['VOC']['years_to_complete'],
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 )
             ]
             probs = [0.60, 0.40]
-        elif program_type == 'Labor':
-            # Labor optimistic scenario (95% labor, 5% NA)
+        elif program_type == 'Trade':
+            # Trade optimistic scenario (60% trade, 35% asst, 5% NA)
             degrees = [
                 Degree(
-                    name=base_degrees['LABOR']['name'],
-                    mean_earnings=base_degrees['LABOR']['mean_earnings'],
-                    stdev=base_degrees['LABOR']['stdev'],
-                    experience_growth=base_degrees['LABOR']['experience_growth'],
-                    years_to_complete=base_degrees['LABOR']['years_to_complete'],
+                    name=base_degrees['TRADE']['name'],
+                    mean_earnings=base_degrees['TRADE']['mean_earnings'],
+                    stdev=base_degrees['TRADE']['stdev'],
+                    experience_growth=base_degrees['TRADE']['experience_growth'],
+                    years_to_complete=base_degrees['TRADE']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
+                    name=base_degrees['ASST']['name'],
+                    mean_earnings=base_degrees['ASST']['mean_earnings'],
+                    stdev=base_degrees['ASST']['stdev'],
+                    experience_growth=base_degrees['ASST']['experience_growth'],
+                    years_to_complete=base_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -858,10 +881,10 @@ def _setup_degree_distribution(
                     stdev=base_degrees['NA']['stdev'],
                     experience_growth=base_degrees['NA']['experience_growth'],
                     years_to_complete=base_degrees['NA']['years_to_complete'],
-                    leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
+                    leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.95, 0.05]
+            probs = [0.60, 0.35, 0.05]
     
     elif scenario == 'custom':
         # Use user-provided degree distribution
@@ -887,16 +910,16 @@ def _setup_degree_distribution(
             ))
             probs.append(ma_pct)
         
-        if voc_pct > 0:
+        if asst_pct > 0:
             degrees.append(Degree(
-                name=base_degrees['VOC']['name'],
-                mean_earnings=base_degrees['VOC']['mean_earnings'],
-                stdev=base_degrees['VOC']['stdev'],
-                experience_growth=base_degrees['VOC']['experience_growth'],
-                years_to_complete=base_degrees['VOC']['years_to_complete'],
+                name=base_degrees['ASST']['name'],
+                mean_earnings=base_degrees['ASST']['mean_earnings'],
+                stdev=base_degrees['ASST']['stdev'],
+                experience_growth=base_degrees['ASST']['experience_growth'],
+                years_to_complete=base_degrees['ASST']['years_to_complete'],
                 leave_labor_force_probability=leave_labor_force_probability
             ))
-            probs.append(voc_pct)
+            probs.append(asst_pct)
 
         if nurse_pct > 0:
             degrees.append(Degree(
@@ -920,16 +943,16 @@ def _setup_degree_distribution(
             ))
             probs.append(na_pct)
         
-        if labor_pct > 0:
+        if trade_pct > 0:
             degrees.append(Degree(
-                name=base_degrees['LABOR']['name'],
-                mean_earnings=base_degrees['LABOR']['mean_earnings'],
-                stdev=base_degrees['LABOR']['stdev'],
-                experience_growth=base_degrees['LABOR']['experience_growth'],
-                years_to_complete=base_degrees['LABOR']['years_to_complete'],
+                name=base_degrees['TRADE']['name'],
+                mean_earnings=base_degrees['TRADE']['mean_earnings'],
+                stdev=base_degrees['TRADE']['stdev'],
+                experience_growth=base_degrees['TRADE']['experience_growth'],
+                years_to_complete=base_degrees['TRADE']['years_to_complete'],
                 leave_labor_force_probability=leave_labor_force_probability  # Use the user-provided leave_labor_force_probability, not a fixed value
             ))
-            probs.append(labor_pct)
+            probs.append(trade_pct)
         
         # Normalize probabilities to ensure they sum to 1
         if sum(probs) > 0:
@@ -1197,8 +1220,8 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='Run ISA simulations')
-    parser.add_argument('--program', type=str, default='TVET', choices=['University', 'TVET', 'Labor'],
-                        help='Program type (University, TVET, or Labor)')
+    parser.add_argument('--program', type=str, default='Nurse', choices=['University', 'Nurse', 'Trade'],
+                        help='Program type (University, Nurse, or Trade)')
     parser.add_argument('--scenario', type=str, default='baseline', 
                         choices=['baseline', 'conservative', 'optimistic', 'custom'],
                         help='Scenario to run')
@@ -1220,30 +1243,33 @@ def main():
                 num_students=args.students,
                 num_sims=args.sims,
                 scenario='custom',
-                ba_pct=80,
+                ba_pct=40,
                 ma_pct=20,
+                na_pct=40,
                 random_seed=args.seed
             )
-        elif args.program == 'TVET':
-            # Example custom TVET scenario
+        elif args.program == 'Nurse':
+            # Example custom Nurse scenario
             results = run_simple_simulation(
                 program_type=args.program,
                 num_students=args.students,
                 num_sims=args.sims,
                 scenario='custom',
                 nurse_pct=30,
-                voc_pct=50,
+                asst_pct=50,
                 na_pct=20,
                 random_seed=args.seed
             )
-        elif args.program == 'Labor':
-            # Example custom Labor scenario
+        elif args.program == 'Trade':
+            # Example custom Trade scenario
             results = run_simple_simulation(
                 program_type=args.program,
                 num_students=args.students,
                 num_sims=args.sims,
                 scenario='custom',
-                labor_pct=100,
+                trade_pct=40,
+                asst_pct=30,
+                na_pct=30,
                 random_seed=args.seed
             )
     else:

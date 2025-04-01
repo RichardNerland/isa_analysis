@@ -78,6 +78,7 @@ class Student:
         self.is_home = False
         self.years_paid = 0
         self.hit_cap = False
+        self.cap_value_when_hit = 0.0  # Store the actual cap value when the student hits it
         self.years_experience = 0
         self.graduation_year = degree.years_to_complete
 
@@ -110,32 +111,54 @@ class Degree:
                 f"years={self.years_to_complete}, leave_labor_force_probability={self.leave_labor_force_probability:.1%})")
 
 
-def _calculate_graduation_delay(base_years_to_complete: int) -> int:
+def _calculate_graduation_delay(base_years_to_complete: int, degree_name: str = '') -> int:
     """
-    Calculate a realistic graduation delay based on the following distribution:
+    Calculate a realistic graduation delay based on degree-specific distributions.
+    
+    For BA and ASST degrees:
     - 50% graduate on time (no delay)
     - 25% graduate 1 year late (50% of remaining)
     - 12.5% graduate 2 years late (50% of remaining)
     - 6.25% graduate 3 years late (50% of remaining)
     - The rest (6.25%) graduate 4 years late
     
+    For MA, NURSE, and TRADE degrees:
+    - 75% graduate on time (no delay)
+    - 20% graduate 1 year late
+    - 2.5% graduate 2 years late
+    - 2.5% graduate 3 years late
+    
     Args:
         base_years_to_complete: The nominal years to complete the degree
+        degree_name: The type of degree (BA, MA, ASST, NURSE, TRADE, etc.)
         
     Returns:
         Total years to complete including delay
     """
     rand = np.random.random()
-    if rand < 0.5:
-        return base_years_to_complete  # Graduate on time
-    elif rand < 0.75:
-        return base_years_to_complete + 1  # 1 year late
-    elif rand < 0.875:
-        return base_years_to_complete + 2  # 2 years late
-    elif rand < 0.9375:
-        return base_years_to_complete + 3  # 3 years late
+    
+    # Apply special distribution for Masters, Nurse, and Trade degrees
+    if degree_name in ['MA', 'NURSE', 'TRADE']:
+        if rand < 0.75:
+            return base_years_to_complete  # Graduate on time
+        elif rand < 0.95:
+            return base_years_to_complete + 1  # 1 year late
+        elif rand < 0.975:
+            return base_years_to_complete + 2  # 2 years late
+        else:
+            return base_years_to_complete + 3  # 3 years late
     else:
-        return base_years_to_complete + 4  # 4 years late
+        # Default distribution for other degrees (BA, ASST, NA, etc.)
+        if rand < 0.5:
+            return base_years_to_complete  # Graduate on time
+        elif rand < 0.75:
+            return base_years_to_complete + 1  # 1 year late
+        elif rand < 0.875:
+            return base_years_to_complete + 2  # 2 years late
+        elif rand < 0.9375:
+            return base_years_to_complete + 3  # 3 years late
+        else:
+            return base_years_to_complete + 4  # 4 years late
 
 
 def simulate_simple(
@@ -188,7 +211,7 @@ def simulate_simple(
             # Store the original years to complete
             base_years = student.degree.years_to_complete
             # Calculate and apply the delay
-            student.graduation_year = _calculate_graduation_delay(base_years)
+            student.graduation_year = _calculate_graduation_delay(base_years, student.degree.name)
     else:
         # Without delay, graduation year is just the degree completion time
         for student in students:
@@ -237,6 +260,7 @@ def simulate_simple(
                         student.real_payments[i] = student.payments[i] / year.deflator
                         student.hit_cap = True
                         student_hit_cap[student_idx] = True
+                        student.cap_value_when_hit = year.isa_cap  # Save the cap value at the time it's hit
                     else:
                         student.payments[i] = potential_payment
                         student.real_payments[i] = potential_payment / year.deflator
@@ -507,6 +531,12 @@ def run_simple_simulation(
     total_payment = {}
     investor_payment = {}
     malengo_payment = {}
+    
+    # Add containers for nominal (non-inflation-adjusted) payments
+    nominal_total_payment = {}
+    nominal_investor_payment = {}
+    nominal_malengo_payment = {}
+    
     df_list = []
     
     # Track statistics across simulations
@@ -558,14 +588,20 @@ def run_simple_simulation(
         repayment_stats.append(stats['repayment_rate'])
         cap_stats.append(stats['cap_stats'])
         
-        # Extract and store payments
+        # Extract and store real payments (inflation-adjusted)
         total_payment[trial] = np.sum(pd.DataFrame([student.real_payments for student in students]), axis=0)
         investor_payment[trial] = df_list[trial]['Investor_Real_Payments']
         malengo_payment[trial] = df_list[trial]['Malengo_Real_Payments']
+        
+        # Extract and store nominal payments (not adjusted for inflation)
+        nominal_total_payment[trial] = np.sum(pd.DataFrame([student.payments for student in students]), axis=0)
+        nominal_investor_payment[trial] = df_list[trial]['Investor_Payments']
+        nominal_malengo_payment[trial] = df_list[trial]['Malengo_Payments']
     
     # Calculate summary statistics
     summary_stats = _calculate_summary_statistics(
         total_payment, investor_payment, malengo_payment,
+        nominal_total_payment, nominal_investor_payment, nominal_malengo_payment,
         total_investment, degrees, probs, num_students,
         employment_stats, ever_employed_stats, repayment_stats, cap_stats
     )
@@ -1160,6 +1196,9 @@ def _calculate_simulation_statistics(
     annual_employment_rates = []
     post_graduation_years = 0
     
+    # For tracking the actual cap values 
+    cap_values = []
+    
     # Count students in different categories
     for student in students:
         # Check if student was ever employed
@@ -1197,6 +1236,7 @@ def _calculate_simulation_statistics(
         if student.hit_cap:
             students_hit_payment_cap += 1
             total_repayment_cap_hit += sum(student.real_payments)
+            cap_values.append(student.cap_value_when_hit)  # Store the cap value when hit
         elif student.years_paid >= limit_years:
             students_hit_years_cap += 1
             total_years_cap_hit += sum(student.real_payments)
@@ -1213,6 +1253,9 @@ def _calculate_simulation_statistics(
     # Calculate average annual employment rate
     avg_annual_employment_rate = sum(annual_employment_rates) / max(1, len(annual_employment_rates))
     
+    # Calculate average cap value (if any students hit it)
+    avg_cap_value = sum(cap_values) / max(1, len(cap_values)) if cap_values else 0
+    
     # Return statistics
     return {
         'employment_rate': avg_annual_employment_rate,  # Changed to average annual employment rate
@@ -1227,7 +1270,8 @@ def _calculate_simulation_statistics(
             'no_cap_pct': students_hit_no_cap / num_students,
             'avg_repayment_cap_hit': avg_repayment_cap_hit,
             'avg_repayment_years_hit': avg_repayment_years_hit,
-            'avg_repayment_no_cap': avg_repayment_no_cap
+            'avg_repayment_no_cap': avg_repayment_no_cap,
+            'avg_cap_value': avg_cap_value
         }
     }
 
@@ -1236,6 +1280,9 @@ def _calculate_summary_statistics(
     total_payment: Dict[int, np.ndarray],
     investor_payment: Dict[int, np.ndarray],
     malengo_payment: Dict[int, np.ndarray],
+    nominal_total_payment: Dict[int, np.ndarray],
+    nominal_investor_payment: Dict[int, np.ndarray],
+    nominal_malengo_payment: Dict[int, np.ndarray],
     total_investment: float,
     degrees: List[Degree],
     probs: List[float],
@@ -1246,7 +1293,7 @@ def _calculate_summary_statistics(
     cap_stats: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
     """Helper function to calculate summary statistics across all simulations."""
-    # Calculate summary statistics
+    # Calculate summary statistics for real (inflation-adjusted) payments
     payments_df = pd.DataFrame(total_payment)
     average_total_payment = np.sum(payments_df, axis=0).mean()
     
@@ -1270,27 +1317,27 @@ def _calculate_summary_statistics(
     else:
         average_duration = 0
     
-    # Calculate IRR (safely handle negative values)
+    # Calculate real IRR (safely handle negative values)
     if average_total_payment > 0 and average_duration > 0:
         IRR = np.log(max(1, average_total_payment) / total_investment) / average_duration
     else:
         IRR = -0.1  # Default negative return
     
-    # Calculate investor payments
+    # Calculate real investor payments
     investor_payments_df = pd.DataFrame(investor_payment)
     average_investor_payment = np.sum(investor_payments_df, axis=0).mean()
     
-    # Calculate Malengo payments
+    # Calculate real Malengo payments
     malengo_payments_df = pd.DataFrame(malengo_payment)
     average_malengo_payment = np.sum(malengo_payments_df, axis=0).mean()
     
-    # Calculate investor IRR using total investment as base
+    # Calculate real investor IRR using total investment as base
     if average_investor_payment > 0 and average_duration > 0:
         investor_IRR = np.log(max(1, average_investor_payment) / total_investment) / average_duration
     else:
         investor_IRR = -0.1
     
-    # Calculate quantile metrics
+    # Calculate real payment quantiles
     payment_quantiles = {}
     for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
         quantile_payment = np.sum(payments_df, axis=0).quantile(quantile)
@@ -1299,7 +1346,7 @@ def _calculate_summary_statistics(
         else:
             payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))  # Lower default for lower quantiles
     
-    # Calculate investor payment quantiles
+    # Calculate real investor payment quantiles
     investor_payment_quantiles = {}
     for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
         investor_quantile_payment = np.sum(investor_payments_df, axis=0).quantile(quantile)
@@ -1308,7 +1355,7 @@ def _calculate_summary_statistics(
         else:
             investor_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))  # Lower default for lower quantiles
     
-    # Prepare payment data for plotting
+    # Prepare real payment data for plotting
     payment_by_year = payments_df.mean(axis=1)
     investor_payment_by_year = investor_payments_df.mean(axis=1)
     malengo_payment_by_year = malengo_payments_df.mean(axis=1)
@@ -1320,25 +1367,64 @@ def _calculate_summary_statistics(
     
     # Calculate average cap statistics
     avg_cap_stats = {
-        'payment_cap_count': np.mean([stat['payment_cap_count'] for stat in cap_stats]),
-        'years_cap_count': np.mean([stat['years_cap_count'] for stat in cap_stats]),
-        'no_cap_count': np.mean([stat['no_cap_count'] for stat in cap_stats]),
-        'payment_cap_pct': np.mean([stat['payment_cap_pct'] for stat in cap_stats]),
-        'years_cap_pct': np.mean([stat['years_cap_pct'] for stat in cap_stats]),
-        'no_cap_pct': np.mean([stat['no_cap_pct'] for stat in cap_stats]),
-        'avg_repayment_cap_hit': np.mean([stat['avg_repayment_cap_hit'] for stat in cap_stats]),
-        'avg_repayment_years_hit': np.mean([stat['avg_repayment_years_hit'] for stat in cap_stats]),
-        'avg_repayment_no_cap': np.mean([stat['avg_repayment_no_cap'] for stat in cap_stats])
+        'payment_cap_pct': np.mean([s['payment_cap_pct'] for s in cap_stats]),
+        'years_cap_pct': np.mean([s['years_cap_pct'] for s in cap_stats]),
+        'no_cap_pct': np.mean([s['no_cap_pct'] for s in cap_stats]),
+        'avg_cap_value': np.mean([s.get('avg_cap_value', 0) for s in cap_stats])
     }
     
-    # Calculate and add degree distribution for return data
-    degree_counts = {}
-    degree_pcts = {}
-    for i, degree in enumerate(degrees):
-        degree_counts[degree.name] = probs[i] * num_students
-        degree_pcts[degree.name] = probs[i]
+    # Calculate degree counts and percentages
+    degree_counts = {degree.name: probs[i] * num_students for i, degree in enumerate(degrees)}
+    degree_pcts = {degree.name: probs[i] for i, degree in enumerate(degrees)}
+    
+    # Calculate summary statistics for nominal (non-inflation-adjusted) payments
+    nominal_payments_df = pd.DataFrame(nominal_total_payment)
+    avg_nominal_total_payment = np.sum(nominal_payments_df, axis=0).mean()
+    
+    # Calculate nominal investor payments
+    nominal_investor_payments_df = pd.DataFrame(nominal_investor_payment)
+    avg_nominal_investor_payment = np.sum(nominal_investor_payments_df, axis=0).mean()
+    
+    # Calculate nominal Malengo payments
+    nominal_malengo_payments_df = pd.DataFrame(nominal_malengo_payment)
+    avg_nominal_malengo_payment = np.sum(nominal_malengo_payments_df, axis=0).mean()
+    
+    # Calculate nominal IRR values using the same duration as real IRR
+    if avg_nominal_total_payment > 0 and average_duration > 0:
+        nominal_IRR = np.log(max(1, avg_nominal_total_payment) / total_investment) / average_duration
+    else:
+        nominal_IRR = -0.1
+        
+    if avg_nominal_investor_payment > 0 and average_duration > 0:
+        nominal_investor_IRR = np.log(max(1, avg_nominal_investor_payment) / total_investment) / average_duration
+    else:
+        nominal_investor_IRR = -0.1
+    
+    # Calculate nominal payment quantiles
+    nominal_payment_quantiles = {}
+    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
+        nominal_quantile_payment = np.sum(nominal_payments_df, axis=0).quantile(quantile)
+        if nominal_quantile_payment > 0 and average_duration > 0:
+            nominal_payment_quantiles[quantile] = np.log(max(1, nominal_quantile_payment) / total_investment) / average_duration
+        else:
+            nominal_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))
+    
+    # Calculate nominal investor payment quantiles
+    nominal_investor_payment_quantiles = {}
+    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
+        nominal_investor_quantile_payment = np.sum(nominal_investor_payments_df, axis=0).quantile(quantile)
+        if nominal_investor_quantile_payment > 0 and average_duration > 0:
+            nominal_investor_payment_quantiles[quantile] = np.log(max(1, nominal_investor_quantile_payment) / total_investment) / average_duration
+        else:
+            nominal_investor_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))
+    
+    # Prepare nominal payment data for plotting
+    nominal_payment_by_year = nominal_payments_df.mean(axis=1)
+    nominal_investor_payment_by_year = nominal_investor_payments_df.mean(axis=1)
+    nominal_malengo_payment_by_year = nominal_malengo_payments_df.mean(axis=1)
     
     return {
+        # Real (inflation-adjusted) IRR values
         'IRR': IRR,
         'investor_IRR': investor_IRR,
         'average_total_payment': average_total_payment,
@@ -1353,6 +1439,23 @@ def _calculate_summary_statistics(
         'malengo_payments_df': malengo_payments_df,
         'payment_quantiles': payment_quantiles,
         'investor_payment_quantiles': investor_payment_quantiles,
+        
+        # Nominal (non inflation-adjusted) IRR values
+        'nominal_IRR': nominal_IRR,
+        'nominal_investor_IRR': nominal_investor_IRR,
+        'average_nominal_total_payment': avg_nominal_total_payment,
+        'average_nominal_investor_payment': avg_nominal_investor_payment,
+        'average_nominal_malengo_payment': avg_nominal_malengo_payment,
+        'nominal_payment_by_year': nominal_payment_by_year,
+        'nominal_investor_payment_by_year': nominal_investor_payment_by_year,
+        'nominal_malengo_payment_by_year': nominal_malengo_payment_by_year,
+        'nominal_payments_df': nominal_payments_df,
+        'nominal_investor_payments_df': nominal_investor_payments_df,
+        'nominal_malengo_payments_df': nominal_malengo_payments_df,
+        'nominal_payment_quantiles': nominal_payment_quantiles,
+        'nominal_investor_payment_quantiles': nominal_investor_payment_quantiles,
+        
+        # Other statistics
         'adjusted_mean_salary': degrees[0].mean_earnings if len(degrees) > 0 else 0,
         'adjusted_salary_std': degrees[0].stdev if len(degrees) > 0 else 0,
         'employment_rate': avg_employment_rate,
@@ -1366,104 +1469,154 @@ def _calculate_summary_statistics(
 
 def main():
     """
-    Main function to demonstrate the usage of the ISA model.
+    Command-line entrypoint for running simulations.
     
-    This function runs several example simulations and prints the results.
+    Example usage:
+    python simple_isa_model.py --program Uganda --scenario baseline --students 200 --sims 50
     """
+    import matplotlib.pyplot as plt
     import argparse
     
-    parser = argparse.ArgumentParser(description='Run ISA simulations')
-    parser.add_argument('--program', type=str, default='Nurse', choices=['Uganda', 'Kenya', 'Rwanda'],
-                        help='Program type (Uganda, Kenya, or Rwanda)')
+    parser = argparse.ArgumentParser(description='Run ISA Monte Carlo simulations.')
+    
+    # Basic simulation parameters
+    parser.add_argument('--program', type=str, default='Uganda', choices=['Uganda', 'Kenya', 'Rwanda'],
+                        help='Program type')
     parser.add_argument('--scenario', type=str, default='baseline', 
                         choices=['baseline', 'conservative', 'optimistic', 'custom'],
                         help='Scenario to run')
-    parser.add_argument('--students', type=int, default=100, help='Number of students')
-    parser.add_argument('--sims', type=int, default=10, help='Number of simulations')
+    parser.add_argument('--students', type=int, default=200, help='Number of students to simulate')
+    parser.add_argument('--sims', type=int, default=20, help='Number of simulations to run')
     parser.add_argument('--seed', type=int, default=None, help='Random seed for reproducibility')
-    parser.add_argument('--plot', action='store_true', help='Generate plots')
-    
-    # Add growth rate parameters (all in decimal form)
-    parser.add_argument('--ba-growth', type=float, default=0.03, 
-                       help='BA annual earnings growth rate (decimal form, e.g., 0.03 for 3%)')
-    parser.add_argument('--ma-growth', type=float, default=0.04,
-                       help='MA annual earnings growth rate (decimal form, e.g., 0.04 for 4%)')
-    parser.add_argument('--asst-growth', type=float, default=0.005,
-                       help='Assistant annual earnings growth rate (decimal form, e.g., 0.005 for 0.5%)')
-    parser.add_argument('--nurse-growth', type=float, default=0.02,
-                       help='Nurse annual earnings growth rate (decimal form, e.g., 0.02 for 2%)')
-    parser.add_argument('--na-growth', type=float, default=0.01,
-                       help='NA annual earnings growth rate (decimal form, e.g., 0.01 for 1%)')
-    parser.add_argument('--trade-growth', type=float, default=0.02,
-                       help='Trade annual earnings growth rate (decimal form, e.g., 0.02 for 2%)')
-    parser.add_argument('--asst-shift-growth', type=float, default=None,
-                       help='ASST_SHIFT annual earnings growth rate (decimal form, defaults to ASST growth)')
-    
-    # Add graduation delay parameter
     parser.add_argument('--graduation-delay', action='store_true', 
-                       help='Apply realistic graduation delays')
+                        help='Apply realistic graduation delays based on degree type')
+    
+    # Growth rate parameters
+    parser.add_argument('--ba-growth', type=float, default=0.03, 
+                        help='Annual growth rate for BA salaries (in decimal form, e.g., 0.03 for 3%)')
+    parser.add_argument('--ma-growth', type=float, default=0.04, 
+                        help='Annual growth rate for MA salaries (in decimal form, e.g., 0.04 for 4%)')
+    parser.add_argument('--asst-growth', type=float, default=0.005, 
+                        help='Annual growth rate for ASST salaries (in decimal form, e.g., 0.005 for 0.5%)')
+    parser.add_argument('--asst-shift-growth', type=float, default=0.005, 
+                        help='Annual growth rate for ASST_SHIFT salaries (in decimal form, e.g., 0.005 for 0.5%)')
+    parser.add_argument('--nurse-growth', type=float, default=0.02, 
+                        help='Annual growth rate for NURSE salaries (in decimal form, e.g., 0.02 for 2%)')
+    parser.add_argument('--na-growth', type=float, default=0.01, 
+                        help='Annual growth rate for NA salaries (in decimal form, e.g., 0.01 for 1%)')
+    parser.add_argument('--trade-growth', type=float, default=0.02, 
+                        help='Annual growth rate for TRADE salaries (in decimal form, e.g., 0.02 for 2%)')
+    
+    # Comparison mode for generating comparison charts
+    parser.add_argument('--comparison', action='store_true', 
+                        help='Enable comparison mode to generate charts comparing scenarios')
     
     args = parser.parse_args()
     
-    print(f"Running {args.scenario} scenario for {args.program} program with {args.students} students")
-    
-    # Run the simulation
-    if args.scenario == 'custom':
-        if args.program == 'Uganda':
-            # Example custom Uganda scenario
-            results = run_simple_simulation(
-                program_type=args.program,
-                num_students=args.students,
-                num_sims=args.sims,
-                scenario='custom',
-                ba_pct=40,
-                ma_pct=20,
-                asst_shift_pct=0,  # Use ASST_SHIFT instead of ASST for Uganda
-                na_pct=40,
-                ba_growth=args.ba_growth,
-                ma_growth=args.ma_growth,
-                asst_growth=args.asst_growth,
-                asst_shift_growth=args.asst_shift_growth,
-                na_growth=args.na_growth,
-                random_seed=args.seed,
-                apply_graduation_delay=args.graduation_delay
-            )
-        elif args.program == 'Kenya':
-            # Example custom Kenya scenario
-            results = run_simple_simulation(
-                program_type=args.program,
-                num_students=args.students,
-                num_sims=args.sims,
-                scenario='custom',
-                nurse_pct=30,
-                asst_pct=40,  # Regular ASST (67% of original ASST)
-                asst_shift_pct=20,  # ASST_SHIFT (33% of original ASST)
-                na_pct=10,
-                nurse_growth=args.nurse_growth,
-                asst_growth=args.asst_growth,
-                asst_shift_growth=args.asst_shift_growth,
-                na_growth=args.na_growth,
-                random_seed=args.seed,
-                apply_graduation_delay=args.graduation_delay
-            )
-        elif args.program == 'Rwanda':
-            # Example custom Rwanda scenario
-            results = run_simple_simulation(
-                program_type=args.program,
-                num_students=args.students,
-                num_sims=args.sims,
-                scenario='custom',
-                trade_pct=40,
-                asst_pct=20,  # Regular ASST (67% of original ASST)
-                asst_shift_pct=10,  # ASST_SHIFT (33% of original ASST)
-                na_pct=30,
-                trade_growth=args.trade_growth,
-                asst_growth=args.asst_growth,
-                asst_shift_growth=args.asst_shift_growth,
-                na_growth=args.na_growth,
-                random_seed=args.seed,
-                apply_graduation_delay=args.graduation_delay
-            )
+    # Special comparison mode that runs multiple scenarios and plots them
+    if args.comparison:
+        # Run all main scenarios
+        results_baseline = run_simple_simulation(
+            program_type=args.program,
+            num_students=args.students,
+            num_sims=args.sims,
+            scenario='baseline',
+            ba_growth=args.ba_growth,
+            ma_growth=args.ma_growth,
+            asst_growth=args.asst_growth,
+            asst_shift_growth=args.asst_shift_growth,
+            nurse_growth=args.nurse_growth,
+            na_growth=args.na_growth,
+            trade_growth=args.trade_growth,
+            random_seed=args.seed,
+            apply_graduation_delay=args.graduation_delay
+        )
+        
+        results_conservative = run_simple_simulation(
+            program_type=args.program,
+            num_students=args.students,
+            num_sims=args.sims,
+            scenario='conservative',
+            ba_growth=args.ba_growth,
+            ma_growth=args.ma_growth,
+            asst_growth=args.asst_growth,
+            asst_shift_growth=args.asst_shift_growth,
+            nurse_growth=args.nurse_growth,
+            na_growth=args.na_growth,
+            trade_growth=args.trade_growth,
+            random_seed=args.seed,
+            apply_graduation_delay=args.graduation_delay
+        )
+        
+        results_optimistic = run_simple_simulation(
+            program_type=args.program,
+            num_students=args.students,
+            num_sims=args.sims,
+            scenario='optimistic',
+            ba_growth=args.ba_growth,
+            ma_growth=args.ma_growth,
+            asst_growth=args.asst_growth,
+            asst_shift_growth=args.asst_shift_growth,
+            nurse_growth=args.nurse_growth,
+            na_growth=args.na_growth,
+            trade_growth=args.trade_growth,
+            random_seed=args.seed,
+            apply_graduation_delay=args.graduation_delay
+        )
+        
+        # Create comparison plots
+        # 1. IRR comparison
+        plt.figure(figsize=(10, 6))
+        scenarios = ['Baseline', 'Conservative', 'Optimistic']
+        real_irrs = [
+            results_baseline['investor_IRR'] * 100,
+            results_conservative['investor_IRR'] * 100,
+            results_optimistic['investor_IRR'] * 100
+        ]
+        nominal_irrs = [
+            results_baseline['nominal_investor_IRR'] * 100,
+            results_conservative['nominal_investor_IRR'] * 100,
+            results_optimistic['nominal_investor_IRR'] * 100
+        ]
+        
+        bar_width = 0.35
+        index = np.arange(len(scenarios))
+        
+        plt.bar(index, real_irrs, bar_width, label='Real IRR')
+        plt.bar(index + bar_width, nominal_irrs, bar_width, label='Nominal IRR')
+        
+        plt.xlabel('Scenario')
+        plt.ylabel('IRR (%)')
+        plt.title(f'{args.program} - Investor IRR Comparison')
+        plt.xticks(index + bar_width / 2, scenarios)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(f'{args.program}_irr_comparison.png')
+        
+        # 2. Cumulative payment comparison
+        plt.figure(figsize=(12, 7))
+        years = range(1, len(results_baseline['investor_payment_by_year']) + 1)
+        
+        plt.plot(years, results_baseline['investor_payment_by_year'].cumsum(), label='Baseline (Real)')
+        plt.plot(years, results_conservative['investor_payment_by_year'].cumsum(), label='Conservative (Real)')
+        plt.plot(years, results_optimistic['investor_payment_by_year'].cumsum(), label='Optimistic (Real)')
+        
+        plt.plot(years, results_baseline['nominal_investor_payment_by_year'].cumsum(), label='Baseline (Nominal)', linestyle='--')
+        plt.plot(years, results_conservative['nominal_investor_payment_by_year'].cumsum(), label='Conservative (Nominal)', linestyle='--')
+        plt.plot(years, results_optimistic['nominal_investor_payment_by_year'].cumsum(), label='Optimistic (Nominal)', linestyle='--')
+        
+        plt.axhline(y=results_baseline['total_investment'], color='black', linestyle='-', label='Initial Investment')
+        
+        plt.xlabel('Year')
+        plt.ylabel('Cumulative Payments')
+        plt.title(f'{args.program} - Cumulative Investor Returns')
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(f'{args.program}_cumulative_returns.png')
+        
+        print(f"\nComparison results saved to {args.program}_irr_comparison.png and {args.program}_cumulative_returns.png")
+        
     else:
         # Run with selected scenario and growth rates
         results = run_simple_simulation(
@@ -1482,44 +1635,91 @@ def main():
             apply_graduation_delay=args.graduation_delay
         )
     
-    # Print key results
-    print("\nSimulation Results:")
-    print(f"Total Investment: ${results['total_investment']:.2f}")
-    print(f"Average Total Payment: ${results['average_total_payment']:.2f}")
-    print(f"IRR: {results['IRR']*100:.2f}%")
-    print(f"Investor IRR: {results['investor_IRR']*100:.2f}%")
-    print(f"Average Duration: {results['average_duration']:.2f} years")
-    print(f"Annual Employment Rate: {results['employment_rate']*100:.2f}%")
-    print(f"Ever Employed Rate: {results.get('ever_employed_rate', 0)*100:.2f}%")
-    print(f"Repayment Rate: {results['repayment_rate']*100:.2f}%")
-    
-    # Print degree distribution
-    print("\nDegree Distribution:")
-    for degree, count in results['degree_counts'].items():
-        print(f"{degree}: {count:.1f} students ({results['degree_pcts'][degree]*100:.1f}%)")
-    
-    # Print cap statistics
-    print("\nCap Statistics:")
-    print(f"Payment Cap: {results['cap_stats']['payment_cap_pct']*100:.2f}% of students")
-    print(f"Years Cap: {results['cap_stats']['years_cap_pct']*100:.2f}% of students")
-    print(f"No Cap: {results['cap_stats']['no_cap_pct']*100:.2f}% of students")
-    
-    # Generate plots if requested
-    if args.plot:
-        import matplotlib.pyplot as plt
+        # Print key results
+        print("\nSimulation Results:")
+        print(f"Total Investment: ${results['total_investment']:.2f}")
+        print(f"Average Total Payment (Real): ${results['average_total_payment']:.2f}")
+        print(f"Average Total Payment (Nominal): ${results['average_nominal_total_payment']:.2f}")
+        print(f"Real IRR: {results['IRR']*100:.2f}%")
+        print(f"Nominal IRR: {results['nominal_IRR']*100:.2f}%")
+        print(f"Real Investor IRR: {results['investor_IRR']*100:.2f}%")
+        print(f"Nominal Investor IRR: {results['nominal_investor_IRR']*100:.2f}%")
+        print(f"Average Duration: {results['average_duration']:.2f} years")
+        print(f"Annual Employment Rate: {results['employment_rate']*100:.2f}%")
+        print(f"Ever Employed Rate: {results.get('ever_employed_rate', 0)*100:.2f}%")
+        print(f"Repayment Rate: {results['repayment_rate']*100:.2f}%")
         
-        # Plot payment by year
+        # Print degree distribution
+        print("\nDegree Distribution:")
+        for degree, count in results['degree_counts'].items():
+            print(f"{degree}: {count:.1f} students ({results['degree_pcts'][degree]*100:.1f}%)")
+        
+        # Print cap statistics
+        print("\nCap Statistics:")
+        print(f"Payment Cap: {results['cap_stats']['payment_cap_pct']*100:.2f}% of students")
+        print(f"Years Cap: {results['cap_stats']['years_cap_pct']*100:.2f}% of students")
+        print(f"No Cap: {results['cap_stats']['no_cap_pct']*100:.2f}% of students")
+        print(f"Average Cap Value When Hit: ${results['cap_stats'].get('avg_cap_value', 0):.2f}")
+        
+        # Create and save plots
+        # 1. Annual payments plot
         plt.figure(figsize=(10, 6))
-        plt.plot(results['payment_by_year'], label='Total Payments')
-        plt.plot(results['investor_payment_by_year'], label='Investor Payments')
-        plt.plot(results['malengo_payment_by_year'], label='Malengo Payments')
+        years = range(1, len(results['payment_by_year']) + 1)
+        
+        plt.plot(years, results['investor_payment_by_year'], label='Investor (Real)')
+        plt.plot(years, results['malengo_payment_by_year'], label='Malengo (Real)')
+        plt.plot(years, results['nominal_investor_payment_by_year'], label='Investor (Nominal)', linestyle='--')
+        plt.plot(years, results['nominal_malengo_payment_by_year'], label='Malengo (Nominal)', linestyle='--')
+        
         plt.xlabel('Year')
-        plt.ylabel('Average Payment (Real)')
-        plt.title(f'{args.program} {args.scenario.capitalize()} Scenario - Payments by Year')
+        plt.ylabel('Average Payment')
+        plt.title(f'{results["program_type"]} - Annual Payments')
         plt.legend()
-        plt.grid(True)
-        plt.savefig(f'{args.program}_{args.scenario}_payments.png')
-        print(f"\nPlot saved as {args.program}_{args.scenario}_payments.png")
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(f'{args.program}_{args.scenario}_annual_payments.png')
+        
+        # 2. Cumulative returns plot
+        plt.figure(figsize=(10, 6))
+        
+        plt.plot(years, results['investor_payment_by_year'].cumsum(), label='Investor Returns (Real)')
+        plt.plot(years, results['nominal_investor_payment_by_year'].cumsum(), label='Investor Returns (Nominal)', linestyle='--')
+        plt.axhline(y=results['total_investment'], color='black', linestyle='-', label='Initial Investment')
+        
+        # Calculate breakeven point (real returns)
+        cumulative_returns = results['investor_payment_by_year'].cumsum()
+        breakeven_year = None
+        for i, value in enumerate(cumulative_returns):
+            if value >= results['total_investment']:
+                breakeven_year = i + 1
+                break
+        
+        # Calculate breakeven point (nominal returns)
+        nominal_cumulative_returns = results['nominal_investor_payment_by_year'].cumsum()
+        nominal_breakeven_year = None
+        for i, value in enumerate(nominal_cumulative_returns):
+            if value >= results['total_investment']:
+                nominal_breakeven_year = i + 1
+                break
+        
+        # Add breakeven point to plot if it exists
+        if breakeven_year:
+            plt.plot(breakeven_year, results['total_investment'], 'ro', 
+                    label=f'Breakeven (Real): Year {breakeven_year}')
+        
+        if nominal_breakeven_year:
+            plt.plot(nominal_breakeven_year, results['total_investment'], 'go', 
+                    label=f'Breakeven (Nominal): Year {nominal_breakeven_year}')
+        
+        plt.xlabel('Year')
+        plt.ylabel('Cumulative Returns')
+        plt.title(f'{results["program_type"]} - Cumulative Investor Returns')
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(f'{args.program}_{args.scenario}_cumulative_returns.png')
+        
+        print(f"\nPlots saved to {args.program}_{args.scenario}_annual_payments.png and {args.program}_{args.scenario}_cumulative_returns.png")
 
 
 if __name__ == "__main__":

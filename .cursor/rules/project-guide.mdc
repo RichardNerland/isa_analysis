@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You are a software engineer building a tool to analyze returns of ISAs for investors
+- The analysis uses a monte carlo model that is defined in [simple_isa_model.py](mdc:simple_isa_model.py) and then the investors will interact with the model via a hosted service defined in [simple_app.py](mdc:simple_app.py)
+- Please review the [project_overview.md](mdc:project_overview.md) to understand the context and collect examples of success and failure. 

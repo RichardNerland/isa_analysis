@@ -3426,6 +3426,7 @@ def update_payment_data_table(results):
     
     # Convert stored dict back to pandas Series
     payment_by_year = pd.Series(results['payment_by_year'])
+    malengo_payment_by_year = pd.Series(results['malengo_payment_by_year'])
     
     # Define the number of years in the simulation right at the start
     num_years = len(payment_by_year)
@@ -3680,7 +3681,10 @@ def update_payment_data_table(results):
         'Avg Repayment (Repaying)': [int(x) for x in avg_repayment_if_repaying],
         'Total Payment ($)': [payment_by_year.get(i, 0) if isinstance(payment_by_year, dict) 
                               else payment_by_year.iloc[i] if i < len(payment_by_year) else 0 
-                              for i in range(num_years)]
+                              for i in range(num_years)],
+        'Malengo Fee ($)': [malengo_payment_by_year.get(i, 0) if isinstance(malengo_payment_by_year, dict)
+                            else malengo_payment_by_year.iloc[i] if i < len(malengo_payment_by_year) else 0
+                            for i in range(num_years)]
     })
     
     # Table with only reliable columns
@@ -3694,7 +3698,8 @@ def update_payment_data_table(results):
             {'name': 'Students Repaying', 'id': 'Students Repaying', 'type': 'numeric'},
             {'name': 'Graduated Not Repaying', 'id': 'Graduated Not Repaying', 'type': 'numeric'},
             {'name': 'Avg Repayment (Repaying) ($)', 'id': 'Avg Repayment (Repaying)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Total Payment ($)', 'id': 'Total Payment ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
+            {'name': 'Total Payment ($)', 'id': 'Total Payment ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
+            {'name': 'Malengo Fee ($)', 'id': 'Malengo Fee ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
         ],
         style_table={'overflowX': 'auto'},
         style_cell={'textAlign': 'center', 'padding': '10px'},
@@ -3828,6 +3833,16 @@ def update_payment_data_table(results):
         ])
     ])
     
+    # Add explanation for Malengo fees
+    malengo_fee_info = html.Div([
+        html.H5("Malengo Fee Structure", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
+        html.P([
+            "Malengo fees are calculated as 2% of the inflation-adjusted initial investment per student annually, ",
+            "but only applied for students who have graduated, are employed, and have not hit any payment caps. ",
+            f"The initial investment per student is ${results.get('price_per_student', 0):,.0f}."
+        ], style={'fontSize': '0.9em', 'marginTop': '10px'})
+    ])
+    
     # Update the return statement to include clearer explanation text
     return html.Div([
         html.H4(f"{results['program_type']} Program - Detailed Payment & Student Data", style={'textAlign': 'center', 'marginBottom': '20px'}),
@@ -3842,6 +3857,7 @@ def update_payment_data_table(results):
         degree_completion_info,
         min_grad_time_info,
         cap_info,
+        malengo_fee_info,
         html.P("Students begin repaying in the same year they graduate (assuming they find employment).",
               style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'textAlign': 'center'}),
         html.P("The 'Graduations' column shows how many students graduate each year, incorporating the delay distribution.",

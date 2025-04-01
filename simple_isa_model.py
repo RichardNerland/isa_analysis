@@ -79,6 +79,7 @@ class Student:
         self.years_paid = 0
         self.hit_cap = False
         self.years_experience = 0
+        self.graduation_year = degree.years_to_complete
 
 
 class Degree:
@@ -109,6 +110,34 @@ class Degree:
                 f"years={self.years_to_complete}, leave_labor_force_probability={self.leave_labor_force_probability:.1%})")
 
 
+def _calculate_graduation_delay(base_years_to_complete: int) -> int:
+    """
+    Calculate a realistic graduation delay based on the following distribution:
+    - 50% graduate on time (no delay)
+    - 25% graduate 1 year late (50% of remaining)
+    - 12.5% graduate 2 years late (50% of remaining)
+    - 6.25% graduate 3 years late (50% of remaining)
+    - The rest (6.25%) graduate 4 years late
+    
+    Args:
+        base_years_to_complete: The nominal years to complete the degree
+        
+    Returns:
+        Total years to complete including delay
+    """
+    rand = np.random.random()
+    if rand < 0.5:
+        return base_years_to_complete  # Graduate on time
+    elif rand < 0.75:
+        return base_years_to_complete + 1  # 1 year late
+    elif rand < 0.875:
+        return base_years_to_complete + 2  # 2 years late
+    elif rand < 0.9375:
+        return base_years_to_complete + 3  # 3 years late
+    else:
+        return base_years_to_complete + 4  # 4 years late
+
+
 def simulate_simple(
     students: List[Student], 
     year: Year, 
@@ -118,7 +147,8 @@ def simulate_simple(
     performance_fee_pct: float = 0.15, 
     gamma: bool = False, 
     price_per_student: float = 30000, 
-    new_malengo_fee: bool = False
+    new_malengo_fee: bool = False,
+    apply_graduation_delay: bool = False
 ) -> Dict[str, Any]:
     """
     Run a single simulation for the given students over the specified number of years
@@ -134,6 +164,7 @@ def simulate_simple(
         gamma: Whether to use gamma distribution instead of normal for earnings
         price_per_student: Cost per student (for new Malengo fee structure)
         new_malengo_fee: Whether to use the new Malengo fee structure (2% of inflation-adjusted investment)
+        apply_graduation_delay: Whether to apply realistic graduation delays
     
     Returns:
         Dictionary of simulation results including student data and payment information
@@ -151,16 +182,28 @@ def simulate_simple(
     student_hit_cap = np.zeros(len(students), dtype=bool)
     student_is_na = np.zeros(len(students), dtype=bool)
     
+    # Apply graduation delay if requested
+    if apply_graduation_delay:
+        for student in students:
+            # Store the original years to complete
+            base_years = student.degree.years_to_complete
+            # Calculate and apply the delay
+            student.graduation_year = _calculate_graduation_delay(base_years)
+    else:
+        # Without delay, graduation year is just the degree completion time
+        for student in students:
+            student.graduation_year = student.degree.years_to_complete
+    
     # Simulation loop
     for i in range(num_years):
         # Process each student
         for student_idx, student in enumerate(students):
             # Skip if student hasn't completed degree yet
-            if i < student.degree.years_to_complete:
+            if i < student.graduation_year:
                 continue
                 
             # Handle graduation year
-            if i == student.degree.years_to_complete:
+            if i == student.graduation_year:
                 _process_graduation(student, student_idx, student_graduated, student_is_na, gamma)
                 
             # Determine employment status
@@ -328,6 +371,7 @@ def run_simple_simulation(
     nurse_pct: float = 0,
     na_pct: float = 0,
     trade_pct: float = 0,  
+    asst_shift_pct: float = 0,
     # Degree parameters
     ba_salary: float = 41300,
     ba_std: float = 6000,
@@ -347,6 +391,9 @@ def run_simple_simulation(
     trade_salary: float = 35000,  
     trade_std: float = 3000,      
     trade_growth: float = 0.02,   # Growth rate in decimal form (e.g., 0.02 = 2% growth)
+    asst_shift_salary: float = None,
+    asst_shift_std: float = None,
+    asst_shift_growth: float = None,
     # ISA parameters
     isa_percentage: Optional[float] = None,
     isa_threshold: float = 27000,
@@ -355,7 +402,8 @@ def run_simple_simulation(
     # Additional parameters
     random_seed: Optional[int] = None,
     num_years: int = 25,
-    limit_years: int = 10
+    limit_years: int = 10,
+    apply_graduation_delay: bool = False
 ) -> Dict[str, Any]:
     """
     Run multiple simulations for Uganda, Kenya, or Rwanda program with simplified parameters.
@@ -371,13 +419,14 @@ def run_simple_simulation(
         initial_inflation_rate: Starting inflation rate (decimal form, e.g., 0.02 = 2%)
         performance_fee_pct: Percentage of payments that goes to Malengo (old fee structure)
         leave_labor_force_probability: Probability of a student leaving the labor force after graduation
-        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct: Custom degree distribution (if scenario='custom')
+        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct, asst_shift_pct: Custom degree distribution (if scenario='custom')
         ba_salary, ba_std, ba_growth: Custom parameters for BA degree (growth in decimal form)
         ma_salary, ma_std, ma_growth: Custom parameters for MA degree (growth in decimal form)
         asst_salary, asst_std, asst_growth: Custom parameters for Assistant degree (growth in decimal form)
         nurse_salary, nurse_std, nurse_growth: Custom parameters for Nurse degree (growth in decimal form)
         na_salary, na_std, na_growth: Custom parameters for NA degree (growth in decimal form)
         trade_salary, trade_std, trade_growth: Custom parameters for Trade degree (growth in decimal form)
+        asst_shift_salary, asst_shift_std, asst_shift_growth: Custom parameters for ASST_SHIFT degree (defaults to ASST values)
         isa_percentage: Custom ISA percentage (defaults based on program type)
         isa_threshold: Custom ISA threshold
         isa_cap: Custom ISA cap (defaults based on program type)
@@ -385,6 +434,7 @@ def run_simple_simulation(
         random_seed: Optional seed for random number generation
         num_years: Total number of years to simulate
         limit_years: Maximum number of years to pay the ISA
+        apply_graduation_delay: Whether to apply realistic graduation delays
     
     Returns:
         Dictionary of aggregated results from multiple simulations
@@ -428,6 +478,14 @@ def run_simple_simulation(
     else:
         raise ValueError("Program type must be 'Uganda', 'Kenya', or 'Rwanda'")
     
+    # Set default values for asst_shift if not provided
+    if asst_shift_salary is None:
+        asst_shift_salary = asst_salary
+    if asst_shift_std is None:
+        asst_shift_std = asst_std
+    if asst_shift_growth is None:
+        asst_shift_growth = asst_growth
+    
     # Define all possible degree types with custom parameters
     base_degrees = _create_degree_definitions(
         ba_salary, ba_std, ba_growth,
@@ -435,13 +493,14 @@ def run_simple_simulation(
         asst_salary, asst_std, asst_growth,
         nurse_salary, nurse_std, nurse_growth,
         na_salary, na_std, na_growth,
-        trade_salary, trade_std, trade_growth  
+        trade_salary, trade_std, trade_growth,
+        asst_shift_salary, asst_shift_std, asst_shift_growth
     )
     
     # Set up degree distribution based on scenario
     degrees, probs = _setup_degree_distribution(
         scenario, program_type, base_degrees, leave_labor_force_probability,
-        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct
+        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct, asst_shift_pct
     )
     
     # Prepare containers for results
@@ -484,7 +543,8 @@ def run_simple_simulation(
             performance_fee_pct=performance_fee_pct,
             gamma=False,
             price_per_student=price_per_student,
-            new_malengo_fee=new_malengo_fee
+            new_malengo_fee=new_malengo_fee,
+            apply_graduation_delay=apply_graduation_delay
         )
         df_list.append(sim_results)
         
@@ -532,7 +592,8 @@ def _create_degree_definitions(
     asst_salary: float, asst_std: float, asst_growth: float,
     nurse_salary: float, nurse_std: float, nurse_growth: float,
     na_salary: float, na_std: float, na_growth: float,
-    trade_salary: float, trade_std: float, trade_growth: float
+    trade_salary: float, trade_std: float, trade_growth: float,
+    asst_shift_salary: float, asst_shift_std: float, asst_shift_growth: float
 ) -> Dict[str, Dict[str, Any]]:
     """
     Helper function to create degree definitions.
@@ -562,6 +623,13 @@ def _create_degree_definitions(
             'stdev': asst_std,
             'experience_growth': asst_growth,  # Growth rate already in decimal form
             'years_to_complete': 3
+        },
+        'ASST_SHIFT': {
+            'name': 'ASST_SHIFT',
+            'mean_earnings': asst_shift_salary,
+            'stdev': asst_shift_std,
+            'experience_growth': asst_shift_growth,  # Growth rate already in decimal form
+            'years_to_complete': 6
         },
         'NURSE': {
             'name': 'NURSE',
@@ -597,7 +665,8 @@ def _setup_degree_distribution(
     asst_pct: float, 
     nurse_pct: float, 
     na_pct: float,
-    trade_pct: float
+    trade_pct: float,
+    asst_shift_pct: float = 0
 ) -> Tuple[List[Degree], List[float]]:
     """Helper function to set up degree distribution based on scenario."""
     degrees = []
@@ -605,10 +674,6 @@ def _setup_degree_distribution(
     
     # Create a copy of base_degrees to modify
     modified_degrees = {k: v.copy() for k, v in base_degrees.items()}
-    
-    # For Uganda program, set ASST years_to_complete to 6
-    if program_type == 'Uganda':
-        modified_degrees['ASST']['years_to_complete'] = 6
     
     # For Kenya and Rwanda programs, add 1 year to all degrees for language training
     if program_type == 'Kenya' or program_type == 'Rwanda':
@@ -635,11 +700,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=modified_degrees['ASST']['name'],
-                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
-                    stdev=modified_degrees['ASST']['stdev'],
-                    experience_growth=modified_degrees['ASST']['experience_growth'],
-                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -653,6 +718,9 @@ def _setup_degree_distribution(
             ]
             probs = [0.45, 0.24, 0.27, 0.04]  
         elif program_type == 'Kenya':
+            # Split ASST into ASST and ASST_SHIFT (33% of ASST becomes ASST_SHIFT)
+            asst_regular_pct = 0.60 * 0.67  # 67% of original ASST percentage
+            asst_shift_pct = 0.60 * 0.33    # 33% of original ASST percentage
             
             degrees = [
                 Degree(
@@ -672,6 +740,14 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
                     name=modified_degrees['NA']['name'],
                     mean_earnings=modified_degrees['NA']['mean_earnings'],
                     stdev=modified_degrees['NA']['stdev'],
@@ -680,8 +756,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.25, 0.60, 0.15]
+            probs = [0.25, asst_regular_pct, asst_shift_pct, 0.15]
         elif program_type == 'Rwanda':
+            # Split ASST into ASST and ASST_SHIFT (33% of ASST becomes ASST_SHIFT)
+            asst_regular_pct = 0.40 * 0.67  # 67% of original ASST percentage
+            asst_shift_pct = 0.40 * 0.33    # 33% of original ASST percentage
            
             degrees = [
                 Degree(
@@ -701,6 +780,14 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
                     name=modified_degrees['NA']['name'],
                     mean_earnings=modified_degrees['NA']['mean_earnings'],
                     stdev=modified_degrees['NA']['stdev'],
@@ -709,7 +796,7 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.40, 0.40, 0.20]
+            probs = [0.40, asst_regular_pct, asst_shift_pct, 0.20]
     
     elif scenario == 'conservative':
         if program_type == 'Uganda':
@@ -732,11 +819,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=modified_degrees['ASST']['name'],
-                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
-                    stdev=modified_degrees['ASST']['stdev'],
-                    experience_growth=modified_degrees['ASST']['experience_growth'],
-                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -750,7 +837,10 @@ def _setup_degree_distribution(
             ]
             probs = [0.32, 0.11, 0.42, 0.15]
         elif program_type == 'Kenya':
-            # Kenya conservative: 20% nurse, 50% assistant, 30% NA (updated as requested)
+            # Split ASST into ASST and ASST_SHIFT (33% of ASST becomes ASST_SHIFT)
+            asst_regular_pct = 0.50 * 0.67  # 67% of original ASST percentage
+            asst_shift_pct = 0.50 * 0.33    # 33% of original ASST percentage
+            
             degrees = [
                 Degree(
                     name=modified_degrees['NURSE']['name'],
@@ -769,6 +859,14 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
                     name=modified_degrees['NA']['name'],
                     mean_earnings=modified_degrees['NA']['mean_earnings'],
                     stdev=modified_degrees['NA']['stdev'],
@@ -777,8 +875,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.20, 0.50, 0.30]
+            probs = [0.20, asst_regular_pct, asst_shift_pct, 0.30]
         elif program_type == 'Rwanda':
+            # Split ASST into ASST and ASST_SHIFT (33% of ASST becomes ASST_SHIFT)
+            asst_regular_pct = 0.40 * 0.67  # 67% of original ASST percentage
+            asst_shift_pct = 0.40 * 0.33    # 33% of original ASST percentage
 
             degrees = [
                 Degree(
@@ -798,6 +899,14 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
                     name=modified_degrees['NA']['name'],
                     mean_earnings=modified_degrees['NA']['mean_earnings'],
                     stdev=modified_degrees['NA']['stdev'],
@@ -806,7 +915,7 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.2, 0.4, 0.4]
+            probs = [0.2, asst_regular_pct, asst_shift_pct, 0.4]
     
     elif scenario == 'optimistic':
         if program_type == 'Uganda':
@@ -829,11 +938,11 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=modified_degrees['ASST']['name'],
-                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
-                    stdev=modified_degrees['ASST']['stdev'],
-                    experience_growth=modified_degrees['ASST']['experience_growth'],
-                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
@@ -847,6 +956,9 @@ def _setup_degree_distribution(
             ]
             probs = [0.63, 0.33, 0.025, 0.015]
         elif program_type == 'Kenya':
+            # Split ASST into ASST and ASST_SHIFT (33% of ASST becomes ASST_SHIFT)
+            asst_regular_pct = 0.40 * 0.67  # 67% of original ASST percentage
+            asst_shift_pct = 0.40 * 0.33    # 33% of original ASST percentage
             
             degrees = [
                 Degree(
@@ -864,11 +976,22 @@ def _setup_degree_distribution(
                     experience_growth=modified_degrees['ASST']['experience_growth'],
                     years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
                 )
             ]
-            probs = [0.60, 0.40]
+            probs = [0.60, asst_regular_pct, asst_shift_pct]
         elif program_type == 'Rwanda':
-            # Trade optimistic scenario (60% trade, 35% asst, 5% NA)
+            # Trade optimistic scenario - Split ASST into ASST and ASST_SHIFT (33% of ASST becomes ASST_SHIFT)
+            asst_regular_pct = 0.35 * 0.67  # 67% of original ASST percentage
+            asst_shift_pct = 0.35 * 0.33    # 33% of original ASST percentage
+            
             degrees = [
                 Degree(
                     name=modified_degrees['TRADE']['name'],
@@ -887,6 +1010,14 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
+                    name=modified_degrees['ASST_SHIFT']['name'],
+                    mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                    stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                    experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
+                    leave_labor_force_probability=leave_labor_force_probability
+                ),
+                Degree(
                     name=modified_degrees['NA']['name'],
                     mean_earnings=modified_degrees['NA']['mean_earnings'],
                     stdev=modified_degrees['NA']['stdev'],
@@ -895,7 +1026,7 @@ def _setup_degree_distribution(
                     leave_labor_force_probability=1  
                 )
             ]
-            probs = [0.60, 0.35, 0.05]
+            probs = [0.60, asst_regular_pct, asst_shift_pct, 0.05]
     
     elif scenario == 'custom':
         # Use user-provided degree distribution
@@ -931,6 +1062,17 @@ def _setup_degree_distribution(
                 leave_labor_force_probability=leave_labor_force_probability
             ))
             probs.append(asst_pct)
+            
+        if asst_shift_pct > 0:
+            degrees.append(Degree(
+                name=modified_degrees['ASST_SHIFT']['name'],
+                mean_earnings=modified_degrees['ASST_SHIFT']['mean_earnings'],
+                stdev=modified_degrees['ASST_SHIFT']['stdev'],
+                experience_growth=modified_degrees['ASST_SHIFT']['experience_growth'],
+                years_to_complete=modified_degrees['ASST_SHIFT']['years_to_complete'],
+                leave_labor_force_probability=leave_labor_force_probability
+            ))
+            probs.append(asst_shift_pct)
 
         if nurse_pct > 0:
             degrees.append(Degree(
@@ -1254,6 +1396,12 @@ def main():
                        help='NA annual earnings growth rate (decimal form, e.g., 0.01 for 1%)')
     parser.add_argument('--trade-growth', type=float, default=0.02,
                        help='Trade annual earnings growth rate (decimal form, e.g., 0.02 for 2%)')
+    parser.add_argument('--asst-shift-growth', type=float, default=None,
+                       help='ASST_SHIFT annual earnings growth rate (decimal form, defaults to ASST growth)')
+    
+    # Add graduation delay parameter
+    parser.add_argument('--graduation-delay', action='store_true', 
+                       help='Apply realistic graduation delays')
     
     args = parser.parse_args()
     
@@ -1270,12 +1418,15 @@ def main():
                 scenario='custom',
                 ba_pct=40,
                 ma_pct=20,
+                asst_shift_pct=0,  # Use ASST_SHIFT instead of ASST for Uganda
                 na_pct=40,
                 ba_growth=args.ba_growth,
                 ma_growth=args.ma_growth,
                 asst_growth=args.asst_growth,
+                asst_shift_growth=args.asst_shift_growth,
                 na_growth=args.na_growth,
-                random_seed=args.seed
+                random_seed=args.seed,
+                apply_graduation_delay=args.graduation_delay
             )
         elif args.program == 'Kenya':
             # Example custom Kenya scenario
@@ -1285,12 +1436,15 @@ def main():
                 num_sims=args.sims,
                 scenario='custom',
                 nurse_pct=30,
-                asst_pct=50,
-                na_pct=20,
+                asst_pct=40,  # Regular ASST (67% of original ASST)
+                asst_shift_pct=20,  # ASST_SHIFT (33% of original ASST)
+                na_pct=10,
                 nurse_growth=args.nurse_growth,
                 asst_growth=args.asst_growth,
+                asst_shift_growth=args.asst_shift_growth,
                 na_growth=args.na_growth,
-                random_seed=args.seed
+                random_seed=args.seed,
+                apply_graduation_delay=args.graduation_delay
             )
         elif args.program == 'Rwanda':
             # Example custom Rwanda scenario
@@ -1300,12 +1454,15 @@ def main():
                 num_sims=args.sims,
                 scenario='custom',
                 trade_pct=40,
-                asst_pct=30,
+                asst_pct=20,  # Regular ASST (67% of original ASST)
+                asst_shift_pct=10,  # ASST_SHIFT (33% of original ASST)
                 na_pct=30,
                 trade_growth=args.trade_growth,
                 asst_growth=args.asst_growth,
+                asst_shift_growth=args.asst_shift_growth,
                 na_growth=args.na_growth,
-                random_seed=args.seed
+                random_seed=args.seed,
+                apply_graduation_delay=args.graduation_delay
             )
     else:
         # Run with selected scenario and growth rates
@@ -1317,10 +1474,12 @@ def main():
             ba_growth=args.ba_growth,
             ma_growth=args.ma_growth,
             asst_growth=args.asst_growth,
+            asst_shift_growth=args.asst_shift_growth,
             nurse_growth=args.nurse_growth,
             na_growth=args.na_growth,
             trade_growth=args.trade_growth,
-            random_seed=args.seed
+            random_seed=args.seed,
+            apply_graduation_delay=args.graduation_delay
         )
     
     # Print key results

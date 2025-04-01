@@ -57,55 +57,55 @@ preset_scenarios = {
         'name': 'Uganda Baseline',
         'description': 'Balanced mix of BA, MA, and Assistant Track degrees.',
         'program_type': 'Uganda',
-        'degrees': {'BA': 0.45, 'MA': 0.24, 'ASST': 0.27, 'NURSE': 0.0, 'NA': 0.04, 'TRADE': 0.0}
+        'degrees': {'BA': 0.45, 'MA': 0.24, 'ASST_SHIFT': 0.27, 'NURSE': 0.0, 'NA': 0.04, 'TRADE': 0.0, 'ASST': 0.0}
     },
     'uganda_conservative': {
         'name': 'Uganda Conservative',
         'description': 'More assistant track degrees, fewer advanced degrees.',
         'program_type': 'Uganda',
-        'degrees': {'BA': 0.32, 'MA': 0.11, 'ASST': 0.42, 'NURSE': 0.0, 'NA': 0.15, 'TRADE': 0.0}
+        'degrees': {'BA': 0.32, 'MA': 0.11, 'ASST_SHIFT': 0.42, 'NURSE': 0.0, 'NA': 0.15, 'TRADE': 0.0, 'ASST': 0.0}
     },
     'uganda_optimistic': {
         'name': 'Uganda Optimistic',
         'description': 'Higher proportion of BA and MA degrees, fewer assistant track degrees.',
         'program_type': 'Uganda',
-        'degrees': {'BA': 0.63, 'MA': 0.33, 'ASST': 0.025, 'NURSE': 0.0, 'NA': 0.015, 'TRADE': 0.0}
+        'degrees': {'BA': 0.63, 'MA': 0.33, 'ASST_SHIFT': 0.025, 'NURSE': 0.0, 'NA': 0.015, 'TRADE': 0.0, 'ASST': 0.0}
     },
     'kenya_baseline': {
         'name': 'Kenya Baseline',
-        'description': 'Nursing baseline scenario with more assistant track than nursing degrees.',
+        'description': 'Nursing baseline scenario with both regular and shifted assistant track.',
         'program_type': 'Kenya',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.60, 'NURSE': 0.25, 'NA': 0.15, 'TRADE': 0.0}
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'ASST_SHIFT': 0.20, 'NURSE': 0.25, 'NA': 0.15, 'TRADE': 0.0}
     },
     'kenya_conservative': {
         'name': 'Kenya Conservative',
         'description': 'Higher proportion of assistant track degrees, more dropouts.',
         'program_type': 'Kenya',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.50, 'NURSE': 0.20, 'NA': 0.30, 'TRADE': 0.0}
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.33, 'ASST_SHIFT': 0.17, 'NURSE': 0.20, 'NA': 0.30, 'TRADE': 0.0}
     },
     'kenya_optimistic': {
         'name': 'Kenya Optimistic',
         'description': 'Higher proportion of nursing degrees, no dropouts.',
         'program_type': 'Kenya',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.60, 'NA': 0.0, 'TRADE': 0.0}
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.27, 'ASST_SHIFT': 0.13, 'NURSE': 0.60, 'NA': 0.0, 'TRADE': 0.0}
     },
     'rwanda_baseline': {
         'name': 'Rwanda Baseline',
-        'description': 'Standard trade program distribution.',
+        'description': 'Standard trade program distribution with both regular and shifted assistant track.',
         'program_type': 'Rwanda',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.0, 'NA': 0.20, 'TRADE': 0.40}
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.27, 'ASST_SHIFT': 0.13, 'NURSE': 0.0, 'NA': 0.20, 'TRADE': 0.40}
     },
     'rwanda_conservative': {
         'name': 'Rwanda Conservative',
         'description': 'Higher dropout rate for trade programs.',
         'program_type': 'Rwanda',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.0, 'NA': 0.40, 'TRADE': 0.2}
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.27, 'ASST_SHIFT': 0.13, 'NURSE': 0.0, 'NA': 0.40, 'TRADE': 0.2}
     },
     'rwanda_optimistic': {
         'name': 'Rwanda Optimistic',
         'description': 'Very low dropout rate for trade programs.',
         'program_type': 'Rwanda',
-        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.35, 'NURSE': 0.0, 'NA': 0.05, 'TRADE': 0.60}
+        'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.23, 'ASST_SHIFT': 0.12, 'NURSE': 0.0, 'NA': 0.05, 'TRADE': 0.60}
     }
 }
 
@@ -279,34 +279,48 @@ app.layout = html.Div([
                                 html.Li("Mean earnings: $31,500/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
                                 html.Li("Standard deviation: $2,800", style={'fontSize': '16px', 'lineHeight': '1.5'}),
                                 html.Li("Annual Experience Growth: 0.5%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
-                                html.Li("Years to Complete: 3", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                                html.Li("Years to Complete: 3", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Used in Kenya/Rwanda programs for direct-entry students", style={'fontSize': '16px', 'lineHeight': '1.5'})
                             ], style={'paddingLeft': '20px'})
                         ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
                         
                         html.Div([
-                            html.H4("4. Nursing Degree (NURSE)", style={'color': '#2c3e50'}),
+                            html.H4("4. Assistant Shift Track (ASST_SHIFT)", style={'color': '#2c3e50'}),
                             html.Ul([
-                                html.Li("Mean earnings: $40,000/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
-                                html.Li("Standard deviation: $4,000", style={'fontSize': '16px', 'lineHeight': '1.5'}),
-                                html.Li("Annual Experience Growth: 2%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
-                                html.Li("Years to Complete: 4", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                                html.Li("Mean earnings: $31,500/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Standard deviation: $2,800", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Annual Experience Growth: 0.5%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Years to Complete: 6", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Represents students who begin in another program and then shift to assistant training", style={'fontSize': '16px', 'lineHeight': '1.5'})
                             ], style={'paddingLeft': '20px'})
                         ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'})
                     ], style={'marginBottom': '20px'}),
                     
                     html.Div([
                         html.Div([
-                            html.H4("5. Trade Program (TRADE)", style={'color': '#2c3e50'}),
+                            html.H4("5. Nursing Degree (NURSE)", style={'color': '#2c3e50'}),
+                            html.Ul([
+                                html.Li("Mean earnings: $40,000/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Standard deviation: $4,000", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Annual Experience Growth: 2%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Years to Complete: 4", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                            ], style={'paddingLeft': '20px'})
+                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                        
+                        html.Div([
+                            html.H4("6. Trade Program (TRADE)", style={'color': '#2c3e50'}),
                             html.Ul([
                                 html.Li("Mean earnings: $35,000/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
                                 html.Li("Standard deviation: $3,000", style={'fontSize': '16px', 'lineHeight': '1.5'}),
                                 html.Li("Annual Experience Growth: 2%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
                                 html.Li("Years to Complete: 3", style={'fontSize': '16px', 'lineHeight': '1.5'})
                             ], style={'paddingLeft': '20px'})
-                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
-                        
+                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'})
+                    ], style={'marginBottom': '20px'}),
+                    
+                    html.Div([
                         html.Div([
-                            html.H4("6. No Advancement (NA)", style={'color': '#2c3e50'}),
+                            html.H4("7. No Advancement (NA)", style={'color': '#2c3e50'}),
                             html.Ul([
                                 html.Li("Mean earnings: $2,200/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
                                 html.Li("Standard deviation: $640", style={'fontSize': '16px', 'lineHeight': '1.5'}),
@@ -643,6 +657,53 @@ app.layout = html.Div([
                                     html.Div([
                                         dcc.Input(
                                             id="asst-growth", 
+                                            type="number", 
+                                            value=0.5, 
+                                            min=0, 
+                                            max=20, 
+                                            step=0.1,
+                                            style={'width': '100%'}
+                                        )
+                                    ], style={'width': '20%', 'display': 'inline-block'}),
+                                ], style={'marginBottom': '10px'}),
+                                
+                                # Assistant Shift row
+                                html.Div([
+                                    html.Div([html.Label("Assistant Shift (ASST_SHIFT)")], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([
+                                        dcc.Input(
+                                            id="asst-shift-pct", 
+                                            type="number", 
+                                            value=0, 
+                                            min=0, 
+                                            max=100, 
+                                            step=1,
+                                            style={'width': '100%'}
+                                        )
+                                    ], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([
+                                        dcc.Input(
+                                            id="asst-shift-salary", 
+                                            type="number", 
+                                            value=31500, 
+                                            min=0, 
+                                            step=100,
+                                            style={'width': '100%'}
+                                        )
+                                    ], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([
+                                        dcc.Input(
+                                            id="asst-shift-std", 
+                                            type="number", 
+                                            value=2800, 
+                                            min=0, 
+                                            step=100,
+                                            style={'width': '100%'}
+                                        )
+                                    ], style={'width': '20%', 'display': 'inline-block'}),
+                                    html.Div([
+                                        dcc.Input(
+                                            id="asst-shift-growth", 
                                             type="number", 
                                             value=0.5, 
                                             min=0, 
@@ -1319,12 +1380,13 @@ def toggle_custom_degree_section(distribution_type):
     [Input("ba-pct", "value"),
      Input("ma-pct", "value"),
      Input("asst-pct", "value"),
+     Input("asst-shift-pct", "value"),
      Input("nurse-pct", "value"),
      Input("na-pct", "value"),
      Input("trade-pct", "value")]
 )
-def validate_degree_sum(ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct):
-    total = sum(filter(None, [ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct]))
+def validate_degree_sum(ba_pct, ma_pct, asst_pct, asst_shift_pct, nurse_pct, na_pct, trade_pct):
+    total = sum(filter(None, [ba_pct, ma_pct, asst_pct, asst_shift_pct, nurse_pct, na_pct, trade_pct]))
     if total != 100:
         return html.Div(f"Warning: Degree percentages sum to {total}%, not 100%", style={'color': 'red'})
     return ""
@@ -1337,6 +1399,7 @@ def validate_degree_sum(ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct):
      Output("nurse-pct", "value"),
      Output("na-pct", "value"),
      Output("trade-pct", "value"),
+     Output("asst-shift-pct", "value"),
      Output("degree-distribution-type", "value"),
      Output("preset-description", "children")],
     [Input("preset-scenario", "value"),
@@ -1379,6 +1442,7 @@ def update_from_preset(preset_name, program_type):
         degrees.get('NURSE', 0) * 100,
         degrees.get('NA', 0) * 100,
         degrees.get('TRADE', 0) * 100,
+        degrees.get('ASST_SHIFT', 0) * 100,
         "custom",  # Switch to custom mode
         preset['description']
     )
@@ -1393,6 +1457,7 @@ def update_from_preset(preset_name, program_type):
      State("ba-pct", "value"),
      State("ma-pct", "value"),
      State("asst-pct", "value"),
+     State("asst-shift-pct", "value"),
      State("nurse-pct", "value"),
      State("na-pct", "value"),
      State("trade-pct", "value"),
@@ -1405,6 +1470,9 @@ def update_from_preset(preset_name, program_type):
      State("asst-salary", "value"),
      State("asst-std", "value"),
      State("asst-growth", "value"),
+     State("asst-shift-salary", "value"),
+     State("asst-shift-std", "value"),
+     State("asst-shift-growth", "value"),
      State("nurse-salary", "value"),
      State("nurse-std", "value"),
      State("nurse-growth", "value"),
@@ -1423,9 +1491,10 @@ def update_from_preset(preset_name, program_type):
      State("inflation-rate", "value"),
      State("leave-labor-force-prob", "value")]
 )
-def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
+def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, asst_pct, asst_shift_pct, nurse_pct, na_pct, trade_pct,
                    ba_salary, ba_std, ba_growth, ma_salary, ma_std, ma_growth, 
-                   asst_salary, asst_std, asst_growth, nurse_salary, nurse_std, nurse_growth,
+                   asst_salary, asst_std, asst_growth, asst_shift_salary, asst_shift_std, asst_shift_growth,
+                   nurse_salary, nurse_std, nurse_growth,
                    na_salary, na_std, na_growth, trade_salary, trade_std, trade_growth,
                    isa_percentage, isa_threshold, isa_cap,
                    num_students, num_sims, unemployment_rate, inflation_rate, 
@@ -1446,6 +1515,7 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, ass
     ba_pct_decimal = ba_pct / 100.0
     ma_pct_decimal = ma_pct / 100.0
     asst_pct_decimal = asst_pct / 100.0
+    asst_shift_pct_decimal = asst_shift_pct / 100.0 if asst_shift_pct is not None else 0
     nurse_pct_decimal = nurse_pct / 100.0
     na_pct_decimal = na_pct / 100.0
     trade_pct_decimal = trade_pct / 100.0
@@ -1487,7 +1557,8 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, ass
             na_pct=na_pct_decimal,
             trade_pct=trade_pct_decimal,
             scenario='custom',
-            new_malengo_fee=True
+            new_malengo_fee=True,
+            apply_graduation_delay=True  # Enable the graduation delay feature
         )
         
         # Convert DataFrames to JSON for storage
@@ -1518,7 +1589,8 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, ass
             'degree_counts': results['degree_counts'],
             'degree_pcts': results['degree_pcts'],
             'initial_unemployment_rate': unemployment_rate,
-            'initial_inflation_rate': inflation_rate
+            'initial_inflation_rate': inflation_rate,
+            'apply_graduation_delay': True  # Store this information for the payment table
         }
         
         return "Simulation completed!", serializable_results
@@ -3344,65 +3416,124 @@ def update_payment_data_table(results):
     degree_pcts = results['degree_pcts']
     degree_counts = results['degree_counts']
     
-    # Calculate approximate degree completion times
-    # This is an approximation based on the typical years_to_complete values
-    degree_times = {
+    # Define degree nominal completion times
+    base_degree_times = {
         'BA': 4,
         'MA': 6,
         'ASST': 3,
-        'NURSE': 4,
+        'NURSE': 3,
         'TRADE': 3,
         'NA': 4
     }
     
-    # Calculate weighted average degree completion time
-    avg_completion_time = 0
-    for degree, pct in degree_pcts.items():
-        if degree in degree_times:
-            avg_completion_time += pct * degree_times[degree]
+    # Adjust for program type - add 1 year for language training in Kenya/Rwanda
+    if results['program_type'] in ['Kenya', 'Rwanda']:
+        for degree in base_degree_times:
+            base_degree_times[degree] += 1
     
-    # Estimate repayment rate and employment rate over time
-    # Initially everyone is in school, then they gradually complete and enter repayment
-    # based on their degree completion times
-    in_school = []
-    graduated = []
-    repaying = []
-    not_repaying_graduated = []
+    # Check if graduation delay is applied
+    apply_graduation_delay = results.get('apply_graduation_delay', False)
     
+    # Model graduation over time with the delay distribution
+    # Distribution: 50% on time, 25% +1 year, 12.5% +2 years, 6.25% +3 years, 6.25% +4 years
+    def calculate_graduation_distribution(degree_count, base_years):
+        graduation_counts = {}
+        for year in range(base_years, base_years + 5):
+            if year == base_years:
+                # 50% graduate on time
+                graduation_counts[year] = degree_count * 0.5
+            elif year == base_years + 1:
+                # 25% graduate 1 year late
+                graduation_counts[year] = degree_count * 0.25
+            elif year == base_years + 2:
+                # 12.5% graduate 2 years late
+                graduation_counts[year] = degree_count * 0.125
+            elif year == base_years + 3:
+                # 6.25% graduate 3 years late
+                graduation_counts[year] = degree_count * 0.0625
+            elif year == base_years + 4:
+                # 6.25% graduate 4 years late
+                graduation_counts[year] = degree_count * 0.0625
+        return graduation_counts
+    
+    # Track graduations by year for each degree type
+    degree_graduations = {}
+    
+    # Find the minimum graduation time across all degrees to determine when first graduations occur
+    min_grad_time = min([base_years for degree, base_years in base_degree_times.items() 
+                        if degree in degree_counts and degree_counts[degree] > 0])
+    
+    if apply_graduation_delay:
+        # Use the delay distribution
+        for degree, count in degree_counts.items():
+            if degree in base_degree_times and count > 0:
+                # Calculate graduation distribution for this degree
+                degree_graduations[degree] = calculate_graduation_distribution(count, base_degree_times[degree])
+    else:
+        # Use simple graduation at exact base times
+        for degree, count in degree_counts.items():
+            if degree in base_degree_times and count > 0:
+                degree_graduations[degree] = {base_degree_times[degree]: count}
+    
+    # Calculate total graduations per year
+    graduations_by_year = {}
+    
+    for degree, grad_schedule in degree_graduations.items():
+        for year, count in grad_schedule.items():
+            if year not in graduations_by_year:
+                graduations_by_year[year] = 0
+            graduations_by_year[year] += count
+    
+    # Initialize tracking arrays - all start with num_students in school
+    in_school = [num_students]
+    graduated = [0]
+    graduations_this_year = [0]
+    repaying = [0]
+    not_repaying_graduated = [0]
+    
+    # Get employment and repayment rates
     employment_rate = results['employment_rate']
     repayment_rate = results['repayment_rate']
-    ever_employed_rate = results.get('ever_employed_rate', 0)
     
-    # Estimate the number of students at each stage by year
-    for year in range(len(payment_by_year)):
-        # Calculate the students still in school for this year
-        students_in_school = 0
-        for degree, count in degree_counts.items():
-            if degree in degree_times:
-                if year < degree_times[degree]:
-                    # All students with this degree are still in school
-                    students_in_school += count
-                elif year == degree_times[degree]:
-                    # Half of the students with this degree are still in school (transition year)
-                    students_in_school += count * 0.5
+    # Get cap stats
+    cap_stats = results['cap_stats']
+    payment_cap_pct = cap_stats['payment_cap_pct']
+    years_cap_pct = cap_stats['years_cap_pct']
+    
+    # Number of years in the simulation
+    num_years = len(payment_by_year)
+    
+    # Current number of students in school (starts with all students)
+    students_in_school = num_students
+    cumulative_graduated = 0
+    
+    # Process graduation and payments for each year after year 0
+    for year in range(1, num_years):
+        # Get graduations for this year
+        year_graduations = graduations_by_year.get(year, 0)
         
-        # Ensure we don't exceed the total number of students
-        students_in_school = min(students_in_school, num_students)
+        # Ensure graduations never exceed students in school
+        year_graduations = min(year_graduations, students_in_school)
         
-        # Calculate students who have graduated
-        students_graduated = num_students - students_in_school
+        # Update students in school and cumulative graduations
+        students_in_school -= year_graduations
+        cumulative_graduated += year_graduations
+        
+        # Ensure bounds are maintained
+        students_in_school = max(0, students_in_school)
+        cumulative_graduated = min(cumulative_graduated, num_students)
         
         # Calculate students who are repaying (based on repayment rate)
-        # This gradually increases as more students graduate
-        students_repaying = 0
-        if students_graduated > 0:
-            students_repaying = students_graduated * repayment_rate
+        # Students start repaying in the same year they graduate
+        students_repaying = cumulative_graduated * repayment_rate
         
-        # Graduated students not repaying
-        students_not_repaying = students_graduated - students_repaying
+        # Calculate students who have graduated but are not repaying
+        students_not_repaying = cumulative_graduated - students_repaying
         
+        # Append current year data to tracking arrays
         in_school.append(int(students_in_school))
-        graduated.append(int(students_graduated))
+        graduated.append(int(cumulative_graduated))
+        graduations_this_year.append(int(year_graduations))
         repaying.append(int(students_repaying))
         not_repaying_graduated.append(int(students_not_repaying))
     
@@ -3412,69 +3543,64 @@ def update_payment_data_table(results):
     isa_threshold = results['isa_threshold']
     
     # Calculate average earnings for different groups
-    avg_earnings_graduated = []
     avg_earnings_repaying = []
     avg_repayment_if_repaying = []
     
-    for year, payment in payment_by_year.items():
-        year_idx = int(year)
+    # Process earnings data
+    for year in range(num_years):
+        year_idx = year
+        # Fix the Series.__getitem__ warning by using .iloc[] or .get()
+        payment = payment_by_year.get(year, 0) if isinstance(year, int) else 0
         
         # Skip years where no one has graduated yet
-        if year_idx < 3 or graduated[year_idx] <= 0:
-            avg_earnings_graduated.append(0)
+        if graduated[year_idx] <= 0:
             avg_earnings_repaying.append(0)
             avg_repayment_if_repaying.append(0)
             continue
         
+        # Calculate active repaying students (those who are repaying)
+        active_repaying = repaying[year_idx]
+        
         # For students who have graduated, estimate their average earnings
-        # This is a rough approximation based on typical earnings growth
-        # Use the payment amount to back-calculate the earnings
-        if payment > 0 and repaying[year_idx] > 0:
-            # Average payment per repaying student
-            payment_per_student = payment / repaying[year_idx]
-            
-            # Back-calculate earnings from payment (Payment = ISA% * (Earnings - Threshold))
-            estimated_earnings_repaying = (payment_per_student / isa_percentage) + isa_threshold
+        if payment > 0 and active_repaying > 0:
+            # Average payment per active repaying student
+            payment_per_student = payment / active_repaying
             
             # Set average repayment for those who are repaying
             avg_repayment_if_repaying.append(payment_per_student)
             
-            # For graduated students (both repaying and not repaying)
-            # We estimate lower earnings for those not repaying
-            estimated_earnings_graduated = (estimated_earnings_repaying * repaying[year_idx] + 
-                                          isa_threshold * 0.9 * not_repaying_graduated[year_idx]) / graduated[year_idx]
-            
-            avg_earnings_graduated.append(estimated_earnings_graduated)
+            # Only calculate earnings for those who are repaying 
+            # Since payment = isa_percentage * earnings, we just divide the payment by the ISA percentage
+            estimated_earnings_repaying = payment_per_student / isa_percentage
             avg_earnings_repaying.append(estimated_earnings_repaying)
         else:
-            avg_earnings_graduated.append(0)
             avg_earnings_repaying.append(0)
             avg_repayment_if_repaying.append(0)
     
-    # Convert to DataFrame for the table
+    # Update the DataFrame with only reliable columns
     payment_df = pd.DataFrame({
-        'Year': payment_by_year.index.astype(int),
+        'Year': range(num_years),
         'Students in School': in_school,
+        'Graduations': graduations_this_year,
+        'Total Graduated': graduated,
         'Students Repaying': repaying,
         'Graduated Not Repaying': not_repaying_graduated,
-        'Avg Earnings (Graduated)': [int(x) for x in avg_earnings_graduated],
-        'Avg Earnings (Repaying)': [int(x) for x in avg_earnings_repaying],
         'Avg Repayment (Repaying)': [int(x) for x in avg_repayment_if_repaying],
-        'Average Payment ($)': payment_by_year.values.round(2)
+        'Total Payment ($)': [payment_by_year.get(i, 0) for i in range(num_years)]
     })
     
-    # Create the data table
+    # Table with only reliable columns
     table = dash_table.DataTable(
         data=payment_df.to_dict('records'),
         columns=[
             {'name': 'Year', 'id': 'Year', 'type': 'numeric'},
             {'name': 'Students in School', 'id': 'Students in School', 'type': 'numeric'},
+            {'name': 'Graduations', 'id': 'Graduations', 'type': 'numeric'},
+            {'name': 'Total Graduated', 'id': 'Total Graduated', 'type': 'numeric'},
             {'name': 'Students Repaying', 'id': 'Students Repaying', 'type': 'numeric'},
             {'name': 'Graduated Not Repaying', 'id': 'Graduated Not Repaying', 'type': 'numeric'},
-            {'name': 'Avg Earnings (Graduated) ($)', 'id': 'Avg Earnings (Graduated)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Avg Earnings (Repaying) ($)', 'id': 'Avg Earnings (Repaying)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
             {'name': 'Avg Repayment (Repaying) ($)', 'id': 'Avg Repayment (Repaying)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Total Payment ($)', 'id': 'Average Payment ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
+            {'name': 'Total Payment ($)', 'id': 'Total Payment ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
         ],
         style_table={'overflowX': 'auto'},
         style_cell={'textAlign': 'center', 'padding': '10px'},
@@ -3493,6 +3619,101 @@ def update_payment_data_table(results):
         page_size=25,  # Show all years without pagination
     )
     
+    # Add information about graduation delay model
+    graduation_model_info = html.Div([
+        html.H5("Graduation Delay Model", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
+        html.Div([
+            html.P([
+                "The model uses a realistic graduation delay distribution:",
+                html.Ul([
+                    html.Li("50% graduate on time"),
+                    html.Li("25% graduate 1 year late"),
+                    html.Li("12.5% graduate 2 years late"),
+                    html.Li("6.25% graduate 3 years late"),
+                    html.Li("6.25% graduate 4 years late")
+                ])
+            ], style={'marginBottom': '5px'})
+        ], style={'marginBottom': '15px'})
+    ]) if apply_graduation_delay else html.Div()
+    
+    # Add information about minimum graduation times
+    min_grad_time_info = html.Div([
+        html.P(f"First students can graduate in year {min_grad_time} based on the shortest degree program.",
+              style={'fontStyle': 'italic', 'textAlign': 'center', 'marginBottom': '15px'})
+    ])
+    
+    # Create a summary of degree completion times
+    degree_completion_info = html.Div([
+        html.H5("Degree Completion Times", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
+        html.Div([
+            html.Table([
+                html.Thead(html.Tr([
+                    html.Th("Degree Type"),
+                    html.Th("Base Years"),
+                    html.Th("With Language Training"),
+                    html.Th("With Delay Range")
+                ])),
+                html.Tbody([
+                    # BA row
+                    html.Tr([
+                        html.Td("Bachelor's (BA)"),
+                        html.Td("4 years"),
+                        html.Td("5 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "4 years"),
+                        html.Td("4-8 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "5-9 years") if apply_graduation_delay else html.Td("N/A")
+                    ]) if degree_counts.get('BA', 0) > 0 else None,
+                    html.Tr([
+                        html.Td("Master's (MA)"),
+                        html.Td("6 years"),
+                        html.Td("7 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "6 years"),
+                        html.Td("6-10 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "7-11 years") if apply_graduation_delay else html.Td("N/A")
+                    ]) if degree_counts.get('MA', 0) > 0 else None,
+                    html.Tr([
+                        html.Td("Assistant (ASST)"),
+                        html.Td("3 years"),
+                        html.Td("4 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "3 years"),
+                        html.Td("3-7 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "4-8 years") if apply_graduation_delay else html.Td("N/A")
+                    ]) if degree_counts.get('ASST', 0) > 0 else None,
+                    html.Tr([
+                        html.Td("Assistant Shift (ASST_SHIFT)"),
+                        html.Td("6 years"),
+                        html.Td("7 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "6 years"),
+                        html.Td("6-10 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "7-11 years") if apply_graduation_delay else html.Td("N/A")
+                    ]) if degree_counts.get('ASST_SHIFT', 0) > 0 else None,
+                    html.Tr([
+                        html.Td("Nursing (NURSE)"),
+                        html.Td("3 years"),
+                        html.Td("4 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "4 years"),
+                        html.Td("4-8 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "4-8 years") if apply_graduation_delay else html.Td("N/A")
+                    ]) if degree_counts.get('NA', 0) > 0 else None
+                ])
+            ], style={'width': '100%', 'marginBottom': '15px'})
+        ])
+    ])
+    
+    # Update the cap_info content to provide clearer information
+    cap_info = html.Div([
+        html.H5("Payment Cap Statistics", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
+        html.Div([
+            html.Div([
+                html.P(f"Students Hitting Payment Cap: {cap_stats['payment_cap_pct']*100:.1f}% ({int(cap_stats['payment_cap_count'])} students)", style={'marginBottom': '5px'}),
+                html.P(f"Avg Repayment if Hit Payment Cap: ${cap_stats['avg_repayment_cap_hit']:,.0f}", style={'marginBottom': '5px'})
+            ], style={'width': '50%', 'display': 'inline-block'}),
+            html.Div([
+                html.P(f"Students Hitting Years Cap: {cap_stats['years_cap_pct']*100:.1f}% ({int(cap_stats['years_cap_count'])} students)", style={'marginBottom': '5px'}),
+                html.P(f"Avg Repayment if Hit Years Cap: ${cap_stats['avg_repayment_years_hit']:,.0f}", style={'marginBottom': '5px'})
+            ], style={'width': '50%', 'display': 'inline-block'})
+        ], style={'marginBottom': '15px'}),
+        html.Div([
+            html.P([
+                "Note on cap hits: ",
+                html.Span("The actual timing of when students hit payment or years caps varies based on individual earnings trajectories. ",
+                         style={'fontStyle': 'italic'}),
+                html.Span(f"In this simulation, a total of {int(cap_stats['payment_cap_count'] + cap_stats['years_cap_count'])} students hit either the payment cap (${results['isa_cap']:,.0f}) or the years cap (10 years)."),
+            ], style={'fontSize': '0.9em', 'marginTop': '10px'})
+        ])
+    ])
+    
+    # Update the return statement to include clearer explanation text
     return html.Div([
         html.H4(f"{results['program_type']} Program - Detailed Payment & Student Data", style={'textAlign': 'center', 'marginBottom': '20px'}),
         html.Div([
@@ -3502,6 +3723,35 @@ def update_payment_data_table(results):
             html.P(f"Annual Employment Rate: {results['employment_rate']*100:.1f}%", style={'fontWeight': 'bold'}),
             html.P(f"Students Making Payments: {results['repayment_rate']*100:.1f}%", style={'fontWeight': 'bold'})
         ], style={'marginBottom': '20px', 'textAlign': 'center'}),
+        graduation_model_info,
+        degree_completion_info,
+        min_grad_time_info,
+        cap_info,
+        html.P("Students begin repaying in the same year they graduate (assuming they find employment).",
+              style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'textAlign': 'center'}),
+        html.P("The 'Graduations' column shows how many students graduate each year, incorporating the delay distribution.",
+              style={'marginBottom': '5px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
+        html.P("'Students Repaying' represents graduates who have found employment and have income above the threshold.",
+              style={'marginBottom': '5px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
+        html.P([
+            "Note: To calculate average earnings for repaying students, use the formula: ",
+            html.Span(f"Earnings = (Repayment / {isa_percentage*100:.1f}%)", 
+                     style={'fontWeight': 'bold'})
+        ], style={'marginBottom': '5px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
+        html.P([
+            "Important: The 'Avg Repayment (Repaying)' column shows the average payment amount among students who are making payments. ",
+            "Students only make payments when their income exceeds the threshold of $", f"{isa_threshold:,.0f}", ", ",
+            "but when they do, the payment is calculated as ", f"{isa_percentage*100:.1f}%", " of their total income. ",
+            "In early years of repayment (especially years 4-6), average payments may be lower because many students ",
+            "are just starting their careers with entry-level salaries, and not all eligible students have incomes above the threshold. ",
+            "This explains why some repayment amounts might be lower than what you'd expect for a given ISA rate."
+        ], style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'color': '#d9534f'}),
+        html.P([
+            "Important: ISA payments are calculated as a percentage of the student's total income. ",
+            "Students only make payments when their income exceeds the $", str(isa_threshold), " threshold, ",
+            "but the payment is based on their full income. ",
+            "This explains why some repayment amounts might seem lower than expected."
+        ], style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'color': '#d9534f'}),
         table
     ])
 

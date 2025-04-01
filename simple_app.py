@@ -3035,131 +3035,6 @@ def update_payment_data_table(results):
         page_size=25,  # Show all years without pagination
     )
     
-    # Add information about graduation delay model
-    graduation_model_info = html.Div([
-        html.H5("Graduation Delay Model", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
-        html.Div([
-            html.P([
-                "The model uses degree-specific graduation delay distributions:"
-            ], style={'marginBottom': '5px', 'fontWeight': 'bold'}),
-            
-            html.Div([
-                html.P("For Bachelor's (BA) and Assistant (ASST) degrees:", style={'fontWeight': 'bold', 'marginBottom': '5px'}),
-                html.Ul([
-                    html.Li("50% graduate on time"),
-                    html.Li("25% graduate 1 year late"),
-                    html.Li("12.5% graduate 2 years late"),
-                    html.Li("6.25% graduate 3 years late"),
-                    html.Li("6.25% graduate 4 years late")
-                ], style={'marginBottom': '10px'})
-            ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'}),
-            
-            html.Div([
-                html.P("For Master's (MA), Nursing (NURSE), and Trade (TRADE) degrees:", style={'fontWeight': 'bold', 'marginBottom': '5px'}),
-                html.Ul([
-                    html.Li("75% graduate on time"),
-                    html.Li("20% graduate 1 year late"),
-                    html.Li("2.5% graduate 2 years late"),
-                    html.Li("2.5% graduate 3 years late")
-                ], style={'marginBottom': '10px'})
-            ], style={'width': '50%', 'display': 'inline-block', 'verticalAlign': 'top'})
-        ], style={'marginBottom': '15px'})
-    ]) if apply_graduation_delay else html.Div()
-    
-    # Add information about minimum graduation times
-    min_grad_time_info = html.Div([
-        html.P(f"First students can graduate in year {min_grad_time} based on the shortest degree program.",
-              style={'fontStyle': 'italic', 'textAlign': 'center', 'marginBottom': '15px'})
-    ])
-    
-    # Create a summary of degree completion times
-    degree_completion_info = html.Div([
-        html.H5("Degree Completion Times", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
-        html.Div([
-            html.Table([
-                html.Thead(html.Tr([
-                    html.Th("Degree Type"),
-                    html.Th("Base Years"),
-                    html.Th("With Language Training"),
-                    html.Th("With Delay Range")
-                ])),
-                html.Tbody([
-                    # BA row
-                    html.Tr([
-                        html.Td("Bachelor's (BA)"),
-                        html.Td("4 years"),
-                        html.Td("5 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "4 years"),
-                        html.Td("4-8 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "5-9 years") if apply_graduation_delay else html.Td("N/A")
-                    ]) if degree_counts.get('BA', 0) > 0 else None,
-                    html.Tr([
-                        html.Td("Master's (MA)"),
-                        html.Td("6 years"),
-                        html.Td("7 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "6 years"),
-                        html.Td("6-9 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "7-10 years") if apply_graduation_delay else html.Td("N/A")
-                    ]) if degree_counts.get('MA', 0) > 0 else None,
-                    html.Tr([
-                        html.Td("Assistant (ASST)"),
-                        html.Td("3 years"),
-                        html.Td("4 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "3 years"),
-                        html.Td("3-7 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "4-8 years") if apply_graduation_delay else html.Td("N/A")
-                    ]) if degree_counts.get('ASST', 0) > 0 else None,
-                    html.Tr([
-                        html.Td("Assistant Shift (ASST_SHIFT)"),
-                        html.Td("6 years"),
-                        html.Td("7 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "6 years"),
-                        html.Td("6-10 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "7-11 years") if apply_graduation_delay else html.Td("N/A")
-                    ]) if degree_counts.get('ASST_SHIFT', 0) > 0 else None,
-                    html.Tr([
-                        html.Td("Nursing (NURSE)"),
-                        html.Td("3 years"),
-                        html.Td("4 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "4 years"),
-                        html.Td("3-6 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "4-7 years") if apply_graduation_delay else html.Td("N/A")
-                    ]) if degree_counts.get('NURSE', 0) > 0 else None,
-                    html.Tr([
-                        html.Td("Trade (TRADE)"),
-                        html.Td("3 years"),
-                        html.Td("4 years" if results['program_type'] in ['Kenya', 'Rwanda'] else "3 years"),
-                        html.Td("3-6 years" if results['program_type'] not in ['Kenya', 'Rwanda'] else "4-7 years") if apply_graduation_delay else html.Td("N/A")
-                    ]) if degree_counts.get('TRADE', 0) > 0 else None
-                ])
-            ], style={'width': '100%', 'marginBottom': '15px'})
-        ])
-    ])
-    
-    # Update the cap_info content to provide clearer information
-    cap_info = html.Div([
-        html.H5("Payment Cap Statistics", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
-        html.Div([
-            html.Div([
-                html.P(f"Students Hitting Payment Cap: {cap_stats.get('payment_cap_pct', 0)*100:.1f}% ({int(cap_stats.get('payment_cap_count', 0))} students)", style={'marginBottom': '5px'}),
-                html.P(f"Avg Repayment if Hit Payment Cap: ${cap_stats.get('avg_repayment_cap_hit', 0):,.0f}", style={'marginBottom': '5px'}),
-                html.P(f"Average Cap Value When Hit: ${cap_stats.get('avg_cap_value', results.get('isa_cap', 0)):,.0f}", style={'marginBottom': '5px', 'color': '#2a6496'})
-            ], style={'width': '50%', 'display': 'inline-block'}),
-            html.Div([
-                html.P(f"Students Hitting Years Cap: {cap_stats.get('years_cap_pct', 0)*100:.1f}% ({int(cap_stats.get('years_cap_count', 0))} students)", style={'marginBottom': '5px'}),
-                html.P(f"Avg Repayment if Hit Years Cap: ${cap_stats.get('avg_repayment_years_hit', 0):,.0f}", style={'marginBottom': '5px'})
-            ], style={'width': '50%', 'display': 'inline-block'})
-        ], style={'marginBottom': '15px'}),
-        html.Div([
-            html.P([
-                "Note on cap hits: ",
-                html.Span("The actual timing of when students hit payment or years caps varies based on individual earnings trajectories. ",
-                         style={'fontStyle': 'italic'}),
-                html.Span(f"In this simulation, a total of {int(cap_stats.get('payment_cap_count', 0) + cap_stats.get('years_cap_count', 0))} students hit either the payment cap (${results.get('isa_cap', 0):,.0f}) or the years cap (10 years)."),
-            ], style={'fontSize': '0.9em', 'marginTop': '10px'})
-        ])
-    ])
-    
-    # Add explanation for Malengo fees
-    malengo_fee_info = html.Div([
-        html.H5("Malengo Fee Structure", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
-        html.P([
-            "Malengo fees are calculated as 2% of the inflation-adjusted initial investment per student annually, ",
-            "but only applied for students who have graduated, are employed, and have not hit any payment caps. ",
-            f"The initial investment per student is ${results.get('price_per_student', 0):,.0f}."
-        ], style={'fontSize': '0.9em', 'marginTop': '10px'})
-    ])
-    
     # Update the return statement to include clearer explanation text
     return html.Div([
         html.H4(f"{results['program_type']} Program - Detailed Payment & Student Data", style={'textAlign': 'center', 'marginBottom': '20px'}),
@@ -3170,36 +3045,13 @@ def update_payment_data_table(results):
             html.P(f"Annual Employment Rate: {results['employment_rate']*100:.1f}%", style={'fontWeight': 'bold'}),
             html.P(f"Students Making Payments: {results['repayment_rate']*100:.1f}%", style={'fontWeight': 'bold'})
         ], style={'marginBottom': '20px', 'textAlign': 'center'}),
-        graduation_model_info,
-        degree_completion_info,
-        min_grad_time_info,
-        cap_info,
-        malengo_fee_info,
         html.P("Students begin repaying in the same year they graduate (assuming they find employment).",
               style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'textAlign': 'center'}),
         html.P("The 'Graduations' column shows how many students graduate each year, incorporating the delay distribution.",
               style={'marginBottom': '5px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
         html.P("'Students Repaying' represents graduates who have found employment and have income above the threshold.",
               style={'marginBottom': '5px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
-        html.P([
-            "Note: To calculate average earnings for repaying students, use the formula: ",
-            html.Span(f"Earnings = (Repayment / {isa_percentage*100:.1f}%)", 
-                     style={'fontWeight': 'bold'})
-        ], style={'marginBottom': '5px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
-        html.P([
-            "Important: The 'Avg Repayment (Repaying)' column shows the average payment amount among students who are making payments. ",
-            "Students only make payments when their income exceeds the threshold of $", f"{isa_threshold:,.0f}", ", ",
-            "but when they do, the payment is calculated as ", f"{isa_percentage*100:.1f}%", " of their total income. ",
-            "In early years of repayment (especially years 4-6), average payments may be lower because many students ",
-            "are just starting their careers with entry-level salaries, and not all eligible students have incomes above the threshold. ",
-            "This explains why some repayment amounts might be lower than what you'd expect for a given ISA rate."
-        ], style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'color': '#d9534f'}),
-        html.P([
-            "Important: ISA payments are calculated as a percentage of the student's total income. ",
-            "Students only make payments when their income exceeds the $", str(isa_threshold), " threshold, ",
-            "but the payment is based on their full income. ",
-            "This explains why some repayment amounts might seem lower than expected."
-        ], style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'color': '#d9534f'}),
+
         table
     ])
 

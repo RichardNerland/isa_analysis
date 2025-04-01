@@ -358,10 +358,10 @@ def run_simple_simulation(
     limit_years: int = 10
 ) -> Dict[str, Any]:
     """
-    Run multiple simulations for University, Nurse, or Trade program with simplified parameters.
+    Run multiple simulations for Uganda, Kenya, or Rwanda program with simplified parameters.
     
     Parameters:
-        program_type: 'University', 'Nurse', or 'Trade'
+        program_type: 'Uganda', 'Kenya', or 'Rwanda'
         num_students: Number of students to simulate
         num_sims: Number of simulations to run
         scenario: Predefined scenario to use ('baseline', 'conservative', 'optimistic', or 'custom')
@@ -399,34 +399,34 @@ def run_simple_simulation(
     
     # Set default ISA parameters based on program type if not provided
     if isa_percentage is None:
-        if program_type == 'University':
+        if program_type == 'Uganda':
             isa_percentage = 0.14
-        elif program_type == 'Nurse':
+        elif program_type == 'Kenya':
             isa_percentage = 0.12
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
             isa_percentage = 0.12  
         else:
             isa_percentage = 0.12  # Default
     
     if isa_cap is None:
-        if program_type == 'University':
+        if program_type == 'Uganda':
             isa_cap = 72500
-        elif program_type == 'Nurse':
+        elif program_type == 'Kenya':
             isa_cap = 49950
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
             isa_cap = 45000  
         else:
             isa_cap = 50000  # Default
     
     # Program-specific parameters
-    if program_type == 'University':
+    if program_type == 'Uganda':
         price_per_student = 29000
-    elif program_type == 'Nurse':
+    elif program_type == 'Kenya':
         price_per_student = 16650
-    elif program_type == 'Trade':
+    elif program_type == 'Rwanda':
         price_per_student = 15000  
     else:
-        raise ValueError("Program type must be 'University', 'Nurse', or 'Trade'")
+        raise ValueError("Program type must be 'Uganda', 'Kenya', or 'Rwanda'")
     
     # Define all possible degree types with custom parameters
     base_degrees = _create_degree_definitions(
@@ -603,283 +603,295 @@ def _setup_degree_distribution(
     degrees = []
     probs = []
     
+    # Create a copy of base_degrees to modify
+    modified_degrees = {k: v.copy() for k, v in base_degrees.items()}
+    
+    # For Uganda program, set ASST years_to_complete to 6
+    if program_type == 'Uganda':
+        modified_degrees['ASST']['years_to_complete'] = 6
+    
+    # For Kenya and Rwanda programs, add 1 year to all degrees for language training
+    if program_type == 'Kenya' or program_type == 'Rwanda':
+        for degree_type in modified_degrees:
+            modified_degrees[degree_type]['years_to_complete'] += 1
+    
     if scenario == 'baseline':
-        if program_type == 'University':
+        if program_type == 'Uganda':
             degrees = [
                 Degree(
-                    name=base_degrees['BA']['name'],
-                    mean_earnings=base_degrees['BA']['mean_earnings'],
-                    stdev=base_degrees['BA']['stdev'],
-                    experience_growth=base_degrees['BA']['experience_growth'],
-                    years_to_complete=base_degrees['BA']['years_to_complete'],
+                    name=modified_degrees['BA']['name'],
+                    mean_earnings=modified_degrees['BA']['mean_earnings'],
+                    stdev=modified_degrees['BA']['stdev'],
+                    experience_growth=modified_degrees['BA']['experience_growth'],
+                    years_to_complete=modified_degrees['BA']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['MA']['name'],
-                    mean_earnings=base_degrees['MA']['mean_earnings'],
-                    stdev=base_degrees['MA']['stdev'],
-                    experience_growth=base_degrees['MA']['experience_growth'],
-                    years_to_complete=base_degrees['MA']['years_to_complete'],
+                    name=modified_degrees['MA']['name'],
+                    mean_earnings=modified_degrees['MA']['mean_earnings'],
+                    stdev=modified_degrees['MA']['stdev'],
+                    experience_growth=modified_degrees['MA']['experience_growth'],
+                    years_to_complete=modified_degrees['MA']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['NA']['name'],
-                    mean_earnings=base_degrees['NA']['mean_earnings'],
-                    stdev=base_degrees['NA']['stdev'],
-                    experience_growth=base_degrees['NA']['experience_growth'],
-                    years_to_complete=base_degrees['NA']['years_to_complete'],
+                    name=modified_degrees['NA']['name'],
+                    mean_earnings=modified_degrees['NA']['mean_earnings'],
+                    stdev=modified_degrees['NA']['stdev'],
+                    experience_growth=modified_degrees['NA']['experience_growth'],
+                    years_to_complete=modified_degrees['NA']['years_to_complete'],
                     leave_labor_force_probability=1  
                 )
             ]
             probs = [0.45, 0.24, 0.27, 0.04]  
-        elif program_type == 'Nurse':
+        elif program_type == 'Kenya':
             
             degrees = [
                 Degree(
-                    name=base_degrees['NURSE']['name'],
-                    mean_earnings=base_degrees['NURSE']['mean_earnings'],
-                    stdev=base_degrees['NURSE']['stdev'],
-                    experience_growth=base_degrees['NURSE']['experience_growth'],
-                    years_to_complete=base_degrees['NURSE']['years_to_complete'],
+                    name=modified_degrees['NURSE']['name'],
+                    mean_earnings=modified_degrees['NURSE']['mean_earnings'],
+                    stdev=modified_degrees['NURSE']['stdev'],
+                    experience_growth=modified_degrees['NURSE']['experience_growth'],
+                    years_to_complete=modified_degrees['NURSE']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['NA']['name'],
-                    mean_earnings=base_degrees['NA']['mean_earnings'],
-                    stdev=base_degrees['NA']['stdev'],
-                    experience_growth=base_degrees['NA']['experience_growth'],
-                    years_to_complete=base_degrees['NA']['years_to_complete'],
+                    name=modified_degrees['NA']['name'],
+                    mean_earnings=modified_degrees['NA']['mean_earnings'],
+                    stdev=modified_degrees['NA']['stdev'],
+                    experience_growth=modified_degrees['NA']['experience_growth'],
+                    years_to_complete=modified_degrees['NA']['years_to_complete'],
                     leave_labor_force_probability=1  
                 )
             ]
             probs = [0.25, 0.60, 0.15]
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
            
             degrees = [
                 Degree(
-                    name=base_degrees['TRADE']['name'],
-                    mean_earnings=base_degrees['TRADE']['mean_earnings'],
-                    stdev=base_degrees['TRADE']['stdev'],
-                    experience_growth=base_degrees['TRADE']['experience_growth'],
-                    years_to_complete=base_degrees['TRADE']['years_to_complete'],
+                    name=modified_degrees['TRADE']['name'],
+                    mean_earnings=modified_degrees['TRADE']['mean_earnings'],
+                    stdev=modified_degrees['TRADE']['stdev'],
+                    experience_growth=modified_degrees['TRADE']['experience_growth'],
+                    years_to_complete=modified_degrees['TRADE']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['NA']['name'],
-                    mean_earnings=base_degrees['NA']['mean_earnings'],
-                    stdev=base_degrees['NA']['stdev'],
-                    experience_growth=base_degrees['NA']['experience_growth'],
-                    years_to_complete=base_degrees['NA']['years_to_complete'],
+                    name=modified_degrees['NA']['name'],
+                    mean_earnings=modified_degrees['NA']['mean_earnings'],
+                    stdev=modified_degrees['NA']['stdev'],
+                    experience_growth=modified_degrees['NA']['experience_growth'],
+                    years_to_complete=modified_degrees['NA']['years_to_complete'],
                     leave_labor_force_probability=1  
                 )
             ]
             probs = [0.40, 0.40, 0.20]
     
     elif scenario == 'conservative':
-        if program_type == 'University':
-            # University conservative: Updated (32% BA, 11% MA, 42% ASST, 15% NA)
+        if program_type == 'Uganda':
+            # Uganda conservative: Updated (32% BA, 11% MA, 42% ASST, 15% NA)
             degrees = [
                 Degree(
-                    name=base_degrees['BA']['name'],
-                    mean_earnings=base_degrees['BA']['mean_earnings'],
-                    stdev=base_degrees['BA']['stdev'],
-                    experience_growth=base_degrees['BA']['experience_growth'],
-                    years_to_complete=base_degrees['BA']['years_to_complete'],
+                    name=modified_degrees['BA']['name'],
+                    mean_earnings=modified_degrees['BA']['mean_earnings'],
+                    stdev=modified_degrees['BA']['stdev'],
+                    experience_growth=modified_degrees['BA']['experience_growth'],
+                    years_to_complete=modified_degrees['BA']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['MA']['name'],
-                    mean_earnings=base_degrees['MA']['mean_earnings'],
-                    stdev=base_degrees['MA']['stdev'],
-                    experience_growth=base_degrees['MA']['experience_growth'],
-                    years_to_complete=base_degrees['MA']['years_to_complete'],
+                    name=modified_degrees['MA']['name'],
+                    mean_earnings=modified_degrees['MA']['mean_earnings'],
+                    stdev=modified_degrees['MA']['stdev'],
+                    experience_growth=modified_degrees['MA']['experience_growth'],
+                    years_to_complete=modified_degrees['MA']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['NA']['name'],
-                    mean_earnings=base_degrees['NA']['mean_earnings'],
-                    stdev=base_degrees['NA']['stdev'],
-                    experience_growth=base_degrees['NA']['experience_growth'],
-                    years_to_complete=base_degrees['NA']['years_to_complete'],
+                    name=modified_degrees['NA']['name'],
+                    mean_earnings=modified_degrees['NA']['mean_earnings'],
+                    stdev=modified_degrees['NA']['stdev'],
+                    experience_growth=modified_degrees['NA']['experience_growth'],
+                    years_to_complete=modified_degrees['NA']['years_to_complete'],
                     leave_labor_force_probability=1  
                 )
             ]
             probs = [0.32, 0.11, 0.42, 0.15]
-        elif program_type == 'Nurse':
-            # Nurse conservative: 20% nurse, 50% assistant, 30% NA (updated as requested)
+        elif program_type == 'Kenya':
+            # Kenya conservative: 20% nurse, 50% assistant, 30% NA (updated as requested)
             degrees = [
                 Degree(
-                    name=base_degrees['NURSE']['name'],
-                    mean_earnings=base_degrees['NURSE']['mean_earnings'],
-                    stdev=base_degrees['NURSE']['stdev'],
-                    experience_growth=base_degrees['NURSE']['experience_growth'],
-                    years_to_complete=base_degrees['NURSE']['years_to_complete'],
+                    name=modified_degrees['NURSE']['name'],
+                    mean_earnings=modified_degrees['NURSE']['mean_earnings'],
+                    stdev=modified_degrees['NURSE']['stdev'],
+                    experience_growth=modified_degrees['NURSE']['experience_growth'],
+                    years_to_complete=modified_degrees['NURSE']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['NA']['name'],
-                    mean_earnings=base_degrees['NA']['mean_earnings'],
-                    stdev=base_degrees['NA']['stdev'],
-                    experience_growth=base_degrees['NA']['experience_growth'],
-                    years_to_complete=base_degrees['NA']['years_to_complete'],
+                    name=modified_degrees['NA']['name'],
+                    mean_earnings=modified_degrees['NA']['mean_earnings'],
+                    stdev=modified_degrees['NA']['stdev'],
+                    experience_growth=modified_degrees['NA']['experience_growth'],
+                    years_to_complete=modified_degrees['NA']['years_to_complete'],
                     leave_labor_force_probability=1  
                 )
             ]
             probs = [0.20, 0.50, 0.30]
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
 
             degrees = [
                 Degree(
-                    name=base_degrees['TRADE']['name'],
-                    mean_earnings=base_degrees['TRADE']['mean_earnings'],
-                    stdev=base_degrees['TRADE']['stdev'],
-                    experience_growth=base_degrees['TRADE']['experience_growth'],
-                    years_to_complete=base_degrees['TRADE']['years_to_complete'],
+                    name=modified_degrees['TRADE']['name'],
+                    mean_earnings=modified_degrees['TRADE']['mean_earnings'],
+                    stdev=modified_degrees['TRADE']['stdev'],
+                    experience_growth=modified_degrees['TRADE']['experience_growth'],
+                    years_to_complete=modified_degrees['TRADE']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['NA']['name'],
-                    mean_earnings=base_degrees['NA']['mean_earnings'],
-                    stdev=base_degrees['NA']['stdev'],
-                    experience_growth=base_degrees['NA']['experience_growth'],
-                    years_to_complete=base_degrees['NA']['years_to_complete'],
+                    name=modified_degrees['NA']['name'],
+                    mean_earnings=modified_degrees['NA']['mean_earnings'],
+                    stdev=modified_degrees['NA']['stdev'],
+                    experience_growth=modified_degrees['NA']['experience_growth'],
+                    years_to_complete=modified_degrees['NA']['years_to_complete'],
                     leave_labor_force_probability=1  
                 )
             ]
             probs = [0.2, 0.4, 0.4]
     
     elif scenario == 'optimistic':
-        if program_type == 'University':
-            # Optimistic scenario (63% BA, 33% MA, 2.5% ASST, 1.5% NA) - reduced NA by 1%
+        if program_type == 'Uganda':
+            # Uganda optimistic scenario (63% BA, 33% MA, 2.5% ASST, 1.5% NA) - reduced NA by 1%
             degrees = [
                 Degree(
-                    name=base_degrees['BA']['name'],
-                    mean_earnings=base_degrees['BA']['mean_earnings'],
-                    stdev=base_degrees['BA']['stdev'],
-                    experience_growth=base_degrees['BA']['experience_growth'],
-                    years_to_complete=base_degrees['BA']['years_to_complete'],
+                    name=modified_degrees['BA']['name'],
+                    mean_earnings=modified_degrees['BA']['mean_earnings'],
+                    stdev=modified_degrees['BA']['stdev'],
+                    experience_growth=modified_degrees['BA']['experience_growth'],
+                    years_to_complete=modified_degrees['BA']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['MA']['name'],
-                    mean_earnings=base_degrees['MA']['mean_earnings'],
-                    stdev=base_degrees['MA']['stdev'],
-                    experience_growth=base_degrees['MA']['experience_growth'],
-                    years_to_complete=base_degrees['MA']['years_to_complete'],
+                    name=modified_degrees['MA']['name'],
+                    mean_earnings=modified_degrees['MA']['mean_earnings'],
+                    stdev=modified_degrees['MA']['stdev'],
+                    experience_growth=modified_degrees['MA']['experience_growth'],
+                    years_to_complete=modified_degrees['MA']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['NA']['name'],
-                    mean_earnings=base_degrees['NA']['mean_earnings'],
-                    stdev=base_degrees['NA']['stdev'],
-                    experience_growth=base_degrees['NA']['experience_growth'],
-                    years_to_complete=base_degrees['NA']['years_to_complete'],
+                    name=modified_degrees['NA']['name'],
+                    mean_earnings=modified_degrees['NA']['mean_earnings'],
+                    stdev=modified_degrees['NA']['stdev'],
+                    experience_growth=modified_degrees['NA']['experience_growth'],
+                    years_to_complete=modified_degrees['NA']['years_to_complete'],
                     leave_labor_force_probability=1  
                 )
             ]
             probs = [0.63, 0.33, 0.025, 0.015]
-        elif program_type == 'Nurse':
+        elif program_type == 'Kenya':
             
             degrees = [
                 Degree(
-                    name=base_degrees['NURSE']['name'],
-                    mean_earnings=base_degrees['NURSE']['mean_earnings'],
-                    stdev=base_degrees['NURSE']['stdev'],
-                    experience_growth=base_degrees['NURSE']['experience_growth'],
-                    years_to_complete=base_degrees['NURSE']['years_to_complete'],
+                    name=modified_degrees['NURSE']['name'],
+                    mean_earnings=modified_degrees['NURSE']['mean_earnings'],
+                    stdev=modified_degrees['NURSE']['stdev'],
+                    experience_growth=modified_degrees['NURSE']['experience_growth'],
+                    years_to_complete=modified_degrees['NURSE']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 )
             ]
             probs = [0.60, 0.40]
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
             # Trade optimistic scenario (60% trade, 35% asst, 5% NA)
             degrees = [
                 Degree(
-                    name=base_degrees['TRADE']['name'],
-                    mean_earnings=base_degrees['TRADE']['mean_earnings'],
-                    stdev=base_degrees['TRADE']['stdev'],
-                    experience_growth=base_degrees['TRADE']['experience_growth'],
-                    years_to_complete=base_degrees['TRADE']['years_to_complete'],
+                    name=modified_degrees['TRADE']['name'],
+                    mean_earnings=modified_degrees['TRADE']['mean_earnings'],
+                    stdev=modified_degrees['TRADE']['stdev'],
+                    experience_growth=modified_degrees['TRADE']['experience_growth'],
+                    years_to_complete=modified_degrees['TRADE']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['ASST']['name'],
-                    mean_earnings=base_degrees['ASST']['mean_earnings'],
-                    stdev=base_degrees['ASST']['stdev'],
-                    experience_growth=base_degrees['ASST']['experience_growth'],
-                    years_to_complete=base_degrees['ASST']['years_to_complete'],
+                    name=modified_degrees['ASST']['name'],
+                    mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                    stdev=modified_degrees['ASST']['stdev'],
+                    experience_growth=modified_degrees['ASST']['experience_growth'],
+                    years_to_complete=modified_degrees['ASST']['years_to_complete'],
                     leave_labor_force_probability=leave_labor_force_probability
                 ),
                 Degree(
-                    name=base_degrees['NA']['name'],
-                    mean_earnings=base_degrees['NA']['mean_earnings'],
-                    stdev=base_degrees['NA']['stdev'],
-                    experience_growth=base_degrees['NA']['experience_growth'],
-                    years_to_complete=base_degrees['NA']['years_to_complete'],
+                    name=modified_degrees['NA']['name'],
+                    mean_earnings=modified_degrees['NA']['mean_earnings'],
+                    stdev=modified_degrees['NA']['stdev'],
+                    experience_growth=modified_degrees['NA']['experience_growth'],
+                    years_to_complete=modified_degrees['NA']['years_to_complete'],
                     leave_labor_force_probability=1  
                 )
             ]
@@ -889,66 +901,66 @@ def _setup_degree_distribution(
         # Use user-provided degree distribution
         if ba_pct > 0:
             degrees.append(Degree(
-                name=base_degrees['BA']['name'],
-                mean_earnings=base_degrees['BA']['mean_earnings'],
-                stdev=base_degrees['BA']['stdev'],
-                experience_growth=base_degrees['BA']['experience_growth'],
-                years_to_complete=base_degrees['BA']['years_to_complete'],
+                name=modified_degrees['BA']['name'],
+                mean_earnings=modified_degrees['BA']['mean_earnings'],
+                stdev=modified_degrees['BA']['stdev'],
+                experience_growth=modified_degrees['BA']['experience_growth'],
+                years_to_complete=modified_degrees['BA']['years_to_complete'],
                 leave_labor_force_probability=leave_labor_force_probability
             ))
             probs.append(ba_pct)
         
         if ma_pct > 0:
             degrees.append(Degree(
-                name=base_degrees['MA']['name'],
-                mean_earnings=base_degrees['MA']['mean_earnings'],
-                stdev=base_degrees['MA']['stdev'],
-                experience_growth=base_degrees['MA']['experience_growth'],
-                years_to_complete=base_degrees['MA']['years_to_complete'],
+                name=modified_degrees['MA']['name'],
+                mean_earnings=modified_degrees['MA']['mean_earnings'],
+                stdev=modified_degrees['MA']['stdev'],
+                experience_growth=modified_degrees['MA']['experience_growth'],
+                years_to_complete=modified_degrees['MA']['years_to_complete'],
                 leave_labor_force_probability=leave_labor_force_probability
             ))
             probs.append(ma_pct)
         
         if asst_pct > 0:
             degrees.append(Degree(
-                name=base_degrees['ASST']['name'],
-                mean_earnings=base_degrees['ASST']['mean_earnings'],
-                stdev=base_degrees['ASST']['stdev'],
-                experience_growth=base_degrees['ASST']['experience_growth'],
-                years_to_complete=base_degrees['ASST']['years_to_complete'],
+                name=modified_degrees['ASST']['name'],
+                mean_earnings=modified_degrees['ASST']['mean_earnings'],
+                stdev=modified_degrees['ASST']['stdev'],
+                experience_growth=modified_degrees['ASST']['experience_growth'],
+                years_to_complete=modified_degrees['ASST']['years_to_complete'],
                 leave_labor_force_probability=leave_labor_force_probability
             ))
             probs.append(asst_pct)
 
         if nurse_pct > 0:
             degrees.append(Degree(
-                name=base_degrees['NURSE']['name'],
-                mean_earnings=base_degrees['NURSE']['mean_earnings'],
-                stdev=base_degrees['NURSE']['stdev'],
-                experience_growth=base_degrees['NURSE']['experience_growth'],
-                years_to_complete=base_degrees['NURSE']['years_to_complete'],
+                name=modified_degrees['NURSE']['name'],
+                mean_earnings=modified_degrees['NURSE']['mean_earnings'],
+                stdev=modified_degrees['NURSE']['stdev'],
+                experience_growth=modified_degrees['NURSE']['experience_growth'],
+                years_to_complete=modified_degrees['NURSE']['years_to_complete'],
                 leave_labor_force_probability=leave_labor_force_probability
             ))
             probs.append(nurse_pct)
         
         if na_pct > 0:
             degrees.append(Degree(
-                name=base_degrees['NA']['name'],
-                mean_earnings=base_degrees['NA']['mean_earnings'],
-                stdev=base_degrees['NA']['stdev'],
-                experience_growth=base_degrees['NA']['experience_growth'],
-                years_to_complete=base_degrees['NA']['years_to_complete'],
+                name=modified_degrees['NA']['name'],
+                mean_earnings=modified_degrees['NA']['mean_earnings'],
+                stdev=modified_degrees['NA']['stdev'],
+                experience_growth=modified_degrees['NA']['experience_growth'],
+                years_to_complete=modified_degrees['NA']['years_to_complete'],
                 leave_labor_force_probability=1  # NA degree has fixed high leave labor force probability
             ))
             probs.append(na_pct)
         
         if trade_pct > 0:
             degrees.append(Degree(
-                name=base_degrees['TRADE']['name'],
-                mean_earnings=base_degrees['TRADE']['mean_earnings'],
-                stdev=base_degrees['TRADE']['stdev'],
-                experience_growth=base_degrees['TRADE']['experience_growth'],
-                years_to_complete=base_degrees['TRADE']['years_to_complete'],
+                name=modified_degrees['TRADE']['name'],
+                mean_earnings=modified_degrees['TRADE']['mean_earnings'],
+                stdev=modified_degrees['TRADE']['stdev'],
+                experience_growth=modified_degrees['TRADE']['experience_growth'],
+                years_to_complete=modified_degrees['TRADE']['years_to_complete'],
                 leave_labor_force_probability=leave_labor_force_probability  # Use the user-provided leave_labor_force_probability, not a fixed value
             ))
             probs.append(trade_pct)
@@ -1219,8 +1231,8 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='Run ISA simulations')
-    parser.add_argument('--program', type=str, default='Nurse', choices=['University', 'Nurse', 'Trade'],
-                        help='Program type (University, Nurse, or Trade)')
+    parser.add_argument('--program', type=str, default='Nurse', choices=['Uganda', 'Kenya', 'Rwanda'],
+                        help='Program type (Uganda, Kenya, or Rwanda)')
     parser.add_argument('--scenario', type=str, default='baseline', 
                         choices=['baseline', 'conservative', 'optimistic', 'custom'],
                         help='Scenario to run')
@@ -1249,8 +1261,8 @@ def main():
     
     # Run the simulation
     if args.scenario == 'custom':
-        if args.program == 'University':
-            # Example custom University scenario
+        if args.program == 'Uganda':
+            # Example custom Uganda scenario
             results = run_simple_simulation(
                 program_type=args.program,
                 num_students=args.students,
@@ -1265,8 +1277,8 @@ def main():
                 na_growth=args.na_growth,
                 random_seed=args.seed
             )
-        elif args.program == 'Nurse':
-            # Example custom Nurse scenario
+        elif args.program == 'Kenya':
+            # Example custom Kenya scenario
             results = run_simple_simulation(
                 program_type=args.program,
                 num_students=args.students,
@@ -1280,8 +1292,8 @@ def main():
                 na_growth=args.na_growth,
                 random_seed=args.seed
             )
-        elif args.program == 'Trade':
-            # Example custom Trade scenario
+        elif args.program == 'Rwanda':
+            # Example custom Rwanda scenario
             results = run_simple_simulation(
                 program_type=args.program,
                 num_students=args.students,

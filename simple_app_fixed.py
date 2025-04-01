@@ -944,10 +944,8 @@ app.layout = html.Div([
                                     html.Div(id="scenario-info")
                                 ]),
                                 dcc.Tab(label='Payment Distribution', children=[
-                                    dcc.Graph(id="payment-distribution")
-                                ]),
-                                dcc.Tab(label='Payment Data Table', children=[
-                                    html.Div(id="payment-data-table")
+                                    dcc.Graph(id="payment-distribution"),
+                                    html.Div(id="payment-summary")
                                 ]),
                                 dcc.Tab(label='Investor vs Malengo', children=[
                                     dcc.Graph(id="investor-malengo-split")
@@ -1295,8 +1293,7 @@ app.layout = html.Div([
                     ], style={'width': '65%', 'display': 'inline-block', 'padding': '20px', 'boxShadow': '0 4px 8px 0 rgba(0,0,0,0.2)', 'backgroundColor': '#f9f9f9', 'borderRadius': '8px'})
                 ], style={'display': 'flex', 'justifyContent': 'space-between', 'gap': '20px', 'marginBottom': '30px'}),
             ])
-        ])
-    ]),
+        ]),
     
     dcc.Store(id='simulation-results-store'),
     dcc.Store(id='saved-scenarios-store', data={})
@@ -1557,29 +1554,75 @@ def update_payment_distribution(results):
     # Create the payment distribution graph
     fig = go.Figure()
     
+    # Add the payment bar chart with improved hover data
     fig.add_trace(go.Bar(
         x=payment_by_year.index,
         y=payment_by_year.values,
-        name="Average Payment by Year",
+        name="Payment by Year",
         marker_color='rgb(55, 83, 109)',
-        hovertemplate="Year: %{x}<br>Average Payment: $%{y:,.0f}<extra></extra>"
+        hovertemplate='Year %{x}<br>Total Payment: $%{y:,.0f}<extra></extra>'
     ))
     
     fig.update_layout(
-        title=f"{results['program_type']} Program - Average Payments by Year",
+        title=f"{results['program_type']} Program - Payments by Year",
         xaxis_title="Year",
-        yaxis_title="Payment Amount ($)",
+        yaxis_title="Total Payment Amount ($)",
         template="plotly_white",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+            font_family="Arial"
         )
     )
     
     return fig
+
+# Separate callback for the payment summary table
+@app.callback(
+    Output("payment-summary", "children"),
+    [Input("simulation-results-store", "data")]
+)
+def update_payment_summary(results):
+    if not results:
+        return html.Div()
+    
+    # Get total payments and students
+    payment_by_year = pd.Series(results['payment_by_year'])
+    total_payments = sum(payment_by_year.values)
+    total_students = results.get('num_students', 100)
+    repayment_rate = results.get('repayment_rate', 0) * 100
+    students_repaying = total_students * (results.get('repayment_rate', 0))
+    
+    # Create a table with repayment summary data
+    repayment_summary = html.Div([
+        html.H4("Repayment Summary", style={'marginTop': '20px', 'marginBottom': '10px'}),
+        html.Table([
+            html.Thead(html.Tr([
+                html.Th("Metric", style={'textAlign': 'left', 'padding': '8px'}),
+                html.Th("Value", style={'textAlign': 'right', 'padding': '8px'})
+            ], style={'backgroundColor': '#f2f2f2'})),
+            html.Tbody([
+                html.Tr([
+                    html.Td("Total Student Count", style={'textAlign': 'left', 'padding': '8px'}),
+                    html.Td(f"{total_students:,}", style={'textAlign': 'right', 'padding': '8px'})
+                ]),
+                html.Tr([
+                    html.Td("Students Making Repayments", style={'textAlign': 'left', 'padding': '8px'}),
+                    html.Td(f"{students_repaying:.1f} ({repayment_rate:.1f}%)", style={'textAlign': 'right', 'padding': '8px'})
+                ]),
+                html.Tr([
+                    html.Td("Total Repayment Amount", style={'textAlign': 'left', 'padding': '8px'}),
+                    html.Td(f"${total_payments:,.2f}", style={'textAlign': 'right', 'padding': '8px'})
+                ]),
+                html.Tr([
+                    html.Td("Repayment per Contributing Student", style={'textAlign': 'left', 'padding': '8px'}),
+                    html.Td(f"${total_payments/students_repaying if students_repaying > 0 else 0:,.2f}", style={'textAlign': 'right', 'padding': '8px'})
+                ])
+            ])
+        ], style={'width': '100%', 'borderCollapse': 'collapse', 'marginBottom': '20px', 'border': '1px solid #ddd'})
+    ])
+    
+    return repayment_summary
 
 # Callback for investor vs malengo split graph
 @app.callback(
@@ -3324,254 +3367,6 @@ def run_blended_monte_carlo(n_clicks, num_sims,
     ])
     
     return "", viz_elements
-
-# Callback for payment data table
-@app.callback(
-    Output("payment-data-table", "children"),
-    [Input("simulation-results-store", "data")]
-)
-def update_payment_data_table(results):
-    if not results:
-        return html.Div("Run a simulation to see results")
-    
-    # Convert stored dict back to pandas Series
-    payment_by_year = pd.Series(results['payment_by_year'])
-    
-    # Get number of students and degree completion times
-    num_students = int(results['cap_stats']['payment_cap_count'] + results['cap_stats']['years_cap_count'] + results['cap_stats']['no_cap_count'])
-    
-    # Get degree distribution and completion times
-    degree_pcts = results['degree_pcts']
-    degree_counts = results['degree_counts']
-    
-    # Calculate approximate degree completion times
-    # This is an approximation based on the typical years_to_complete values
-    degree_times = {
-        'BA': 4,
-        'MA': 6,
-        'ASST': 3,
-        'NURSE': 4,
-        'TRADE': 3,
-        'NA': 4
-    }
-    
-    # Calculate weighted average degree completion time
-    avg_completion_time = 0
-    for degree, pct in degree_pcts.items():
-        if degree in degree_times:
-            avg_completion_time += pct * degree_times[degree]
-    
-    # Estimate repayment rate and employment rate over time
-    # Initially everyone is in school, then they gradually complete and enter repayment
-    # based on their degree completion times
-    in_school = []
-    graduated = []
-    repaying = []
-    not_repaying_graduated = []
-    
-    employment_rate = results['employment_rate']
-    repayment_rate = results['repayment_rate']
-    ever_employed_rate = results.get('ever_employed_rate', 0)
-    
-    # Calculate cap stats
-    cap_stats = results['cap_stats']
-    payment_cap_pct = cap_stats['payment_cap_pct']
-    years_cap_pct = cap_stats['years_cap_pct']
-    avg_repayment_cap_hit = cap_stats['avg_repayment_cap_hit']
-    avg_repayment_years_hit = cap_stats['avg_repayment_years_hit']
-    
-    # Track students who hit caps by year
-    # Initially no one has hit a cap
-    payment_cap_hit_by_year = []
-    years_cap_hit_by_year = []
-    
-    # Estimate the number of students at each stage by year
-    for year in range(len(payment_by_year)):
-        # Calculate the students still in school for this year
-        students_in_school = 0
-        for degree, count in degree_counts.items():
-            if degree in degree_times:
-                if year < degree_times[degree]:
-                    # All students with this degree are still in school
-                    students_in_school += count
-                elif year == degree_times[degree]:
-                    # Half of the students with this degree are still in school (transition year)
-                    students_in_school += count * 0.5
-        
-        # Ensure we don't exceed the total number of students
-        students_in_school = min(students_in_school, num_students)
-        
-        # Calculate students who have graduated
-        students_graduated = num_students - students_in_school
-        
-        # Calculate students who are repaying (based on repayment rate)
-        # This gradually increases as more students graduate
-        students_repaying = 0
-        if students_graduated > 0:
-            students_repaying = students_graduated * repayment_rate
-        
-        # Graduated students not repaying
-        students_not_repaying = students_graduated - students_repaying
-        
-        # Model students hitting payment cap over time
-        # Assume payment cap is gradually reached starting from when most students graduate
-        # and increasing over time based on a logistic function
-        years_after_graduation = max(0, year - int(avg_completion_time))
-        
-        # Cap hit model: gradual increase over time
-        # For students who hit payment cap
-        if years_after_graduation > 0:
-            # Logistic growth function - payment cap hits grow faster than years cap hits
-            payment_cap_logistic = 1 / (1 + np.exp(-0.5 * (years_after_graduation - 5)))
-            years_cap_logistic = 1 / (1 + np.exp(-0.4 * (years_after_graduation - 6)))
-            
-            # Calculate cumulative number of students hitting caps by this year
-            payment_cap_hit = int(num_students * payment_cap_pct * payment_cap_logistic)
-            years_cap_hit = int(num_students * years_cap_pct * years_cap_logistic)
-            
-            # Ensure we don't exceed the total possible number for each category
-            payment_cap_hit = min(payment_cap_hit, int(num_students * payment_cap_pct))
-            years_cap_hit = min(years_cap_hit, int(num_students * years_cap_pct))
-        else:
-            payment_cap_hit = 0
-            years_cap_hit = 0
-        
-        in_school.append(int(students_in_school))
-        graduated.append(int(students_graduated))
-        repaying.append(int(students_repaying))
-        not_repaying_graduated.append(int(students_not_repaying))
-        payment_cap_hit_by_year.append(payment_cap_hit)
-        years_cap_hit_by_year.append(years_cap_hit)
-    
-    # Estimate average earnings
-    # Based on the average payment amount and the ISA percentage
-    isa_percentage = results['isa_percentage']
-    isa_threshold = results['isa_threshold']
-    
-    # Calculate average earnings for different groups
-    avg_earnings_graduated = []
-    avg_earnings_repaying = []
-    avg_repayment_if_repaying = []
-    
-    for year, payment in payment_by_year.items():
-        year_idx = int(year)
-        
-        # Skip years where no one has graduated yet
-        if year_idx < 3 or graduated[year_idx] <= 0:
-            avg_earnings_graduated.append(0)
-            avg_earnings_repaying.append(0)
-            avg_repayment_if_repaying.append(0)
-            continue
-        
-        # Calculate active repaying students (those who haven't hit any cap yet)
-        active_repaying = max(0, repaying[year_idx] - payment_cap_hit_by_year[year_idx] - years_cap_hit_by_year[year_idx])
-        
-        # For students who have graduated, estimate their average earnings
-        # This is a rough approximation based on typical earnings growth
-        if payment > 0 and active_repaying > 0:
-            # Average payment per active repaying student
-            payment_per_student = payment / active_repaying
-            
-            # Back-calculate earnings from payment (Payment = ISA% * (Earnings - Threshold))
-            estimated_earnings_repaying = (payment_per_student / isa_percentage) + isa_threshold
-            
-            # Set average repayment for those who are repaying
-            avg_repayment_if_repaying.append(payment_per_student)
-            
-            # For graduated students (both repaying and not repaying)
-            # We estimate lower earnings for those not repaying
-            estimated_earnings_graduated = (
-                (estimated_earnings_repaying * active_repaying) + 
-                (isa_threshold * 0.9 * not_repaying_graduated[year_idx]) +
-                # Add estimated earnings for those who hit caps
-                (estimated_earnings_repaying * 1.2 * payment_cap_hit_by_year[year_idx]) +
-                (estimated_earnings_repaying * 1.0 * years_cap_hit_by_year[year_idx])
-            ) / graduated[year_idx] if graduated[year_idx] > 0 else 0
-            
-            avg_earnings_graduated.append(estimated_earnings_graduated)
-            avg_earnings_repaying.append(estimated_earnings_repaying)
-        else:
-            avg_earnings_graduated.append(0)
-            avg_earnings_repaying.append(0)
-            avg_repayment_if_repaying.append(0)
-    
-    # Convert to DataFrame for the table
-    payment_df = pd.DataFrame({
-        'Year': payment_by_year.index.astype(int),
-        'Students in School': in_school,
-        'Students Repaying': repaying,
-        'Graduated Not Repaying': not_repaying_graduated,
-        'Hit Payment Cap': payment_cap_hit_by_year,
-        'Hit Years Cap': years_cap_hit_by_year,
-        'Active Repaying': [max(0, r - pc - yc) for r, pc, yc in zip(repaying, payment_cap_hit_by_year, years_cap_hit_by_year)],
-        'Avg Earnings (Graduated)': [int(x) for x in avg_earnings_graduated],
-        'Avg Earnings (Repaying)': [int(x) for x in avg_earnings_repaying],
-        'Avg Repayment (Repaying)': [int(x) for x in avg_repayment_if_repaying],
-        'Total Payment ($)': payment_by_year.values.round(2)
-    })
-    
-    # Create the data table
-    table = dash_table.DataTable(
-        data=payment_df.to_dict('records'),
-        columns=[
-            {'name': 'Year', 'id': 'Year', 'type': 'numeric'},
-            {'name': 'Students in School', 'id': 'Students in School', 'type': 'numeric'},
-            {'name': 'Students Repaying', 'id': 'Students Repaying', 'type': 'numeric'},
-            {'name': 'Graduated Not Repaying', 'id': 'Graduated Not Repaying', 'type': 'numeric'},
-            {'name': 'Hit Payment Cap', 'id': 'Hit Payment Cap', 'type': 'numeric'},
-            {'name': 'Hit Years Cap', 'id': 'Hit Years Cap', 'type': 'numeric'},
-            {'name': 'Active Repaying', 'id': 'Active Repaying', 'type': 'numeric'},
-            {'name': 'Avg Earnings (Graduated) ($)', 'id': 'Avg Earnings (Graduated)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Avg Earnings (Repaying) ($)', 'id': 'Avg Earnings (Repaying)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Avg Repayment (Repaying) ($)', 'id': 'Avg Repayment (Repaying)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Total Payment ($)', 'id': 'Total Payment ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
-        ],
-        style_table={'overflowX': 'auto'},
-        style_cell={'textAlign': 'center', 'padding': '10px'},
-        style_header={
-            'backgroundColor': 'rgb(230, 230, 230)',
-            'fontWeight': 'bold'
-        },
-        style_data_conditional=[
-            {
-                'if': {'row_index': 'odd'},
-                'backgroundColor': 'rgb(248, 248, 248)'
-            }
-        ],
-        sort_action='native',
-        filter_action='native',
-        page_size=25,  # Show all years without pagination
-    )
-    
-    # Add information about cap statistics
-    cap_info = html.Div([
-        html.H5("Cap Statistics", style={'textAlign': 'center', 'marginBottom': '10px', 'marginTop': '15px'}),
-        html.Div([
-            html.Div([
-                html.P(f"Students Hitting Payment Cap: {cap_stats['payment_cap_pct']*100:.1f}% ({int(cap_stats['payment_cap_count'])} students)", style={'marginBottom': '5px'}),
-                html.P(f"Avg Repayment if Hit Payment Cap: ${cap_stats['avg_repayment_cap_hit']:,.0f}", style={'marginBottom': '5px'})
-            ], style={'width': '50%', 'display': 'inline-block'}),
-            html.Div([
-                html.P(f"Students Hitting Years Cap: {cap_stats['years_cap_pct']*100:.1f}% ({int(cap_stats['years_cap_count'])} students)", style={'marginBottom': '5px'}),
-                html.P(f"Avg Repayment if Hit Years Cap: ${cap_stats['avg_repayment_years_hit']:,.0f}", style={'marginBottom': '5px'})
-            ], style={'width': '50%', 'display': 'inline-block'})
-        ], style={'marginBottom': '15px'})
-    ])
-    
-    return html.Div([
-        html.H4(f"{results['program_type']} Program - Detailed Payment & Student Data", style={'textAlign': 'center', 'marginBottom': '20px'}),
-        html.Div([
-            html.P(f"Total Investment: ${results['total_investment']:,.2f}", style={'fontWeight': 'bold'}),
-            html.P(f"Average Total Payment: ${results['average_total_payment']:,.2f}", style={'fontWeight': 'bold'}),
-            html.P(f"Average Duration: {results['average_duration']:.2f} years", style={'fontWeight': 'bold'}),
-            html.P(f"Annual Employment Rate: {results['employment_rate']*100:.1f}%", style={'fontWeight': 'bold'}),
-            html.P(f"Students Making Payments: {results['repayment_rate']*100:.1f}%", style={'fontWeight': 'bold'})
-        ], style={'marginBottom': '20px', 'textAlign': 'center'}),
-        cap_info,
-        html.P("Note: 'Active Repaying' is the number of students who are repaying but haven't hit a cap yet. This is used to calculate the average repayment per student.",
-              style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
-        table
-    ])
 
 # Run the app
 if __name__ == "__main__":

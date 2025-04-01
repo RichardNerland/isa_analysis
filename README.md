@@ -125,7 +125,8 @@ The model includes several degree types with different earnings profiles:
    - Mean annual earnings: $31,500
    - Standard deviation: $4,800
    - Experience growth: 1% annually
-   - Years to complete: 3
+   - Years to complete: 3 (6 years in University program)
+   - Note: The longer completion time for University programs reflects students who drop out of bachelor's programs and switch between programs before completing assistant training
 
 4. **Nursing Degree (NURSE)**
    - Mean annual earnings: $44,000

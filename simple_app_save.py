@@ -53,58 +53,58 @@ sim_options = [
 
 # Define the preset scenarios from the original notebook
 preset_scenarios = {
-    'university_baseline': {
-        'name': 'University Baseline',
+    'uganda_baseline': {
+        'name': 'Uganda Baseline',
         'description': 'Balanced mix of BA, MA, and Assistant Track degrees.',
-        'program_type': 'University',
+        'program_type': 'Uganda',
         'degrees': {'BA': 0.45, 'MA': 0.24, 'ASST': 0.27, 'NURSE': 0.0, 'NA': 0.04, 'TRADE': 0.0}
     },
-    'university_conservative': {
-        'name': 'University Conservative',
+    'uganda_conservative': {
+        'name': 'Uganda Conservative',
         'description': 'More assistant track degrees, fewer advanced degrees.',
-        'program_type': 'University',
+        'program_type': 'Uganda',
         'degrees': {'BA': 0.32, 'MA': 0.11, 'ASST': 0.42, 'NURSE': 0.0, 'NA': 0.15, 'TRADE': 0.0}
     },
-    'university_optimistic': {
-        'name': 'University Optimistic',
+    'uganda_optimistic': {
+        'name': 'Uganda Optimistic',
         'description': 'Higher proportion of BA and MA degrees, fewer assistant track degrees.',
-        'program_type': 'University',
+        'program_type': 'Uganda',
         'degrees': {'BA': 0.63, 'MA': 0.33, 'ASST': 0.025, 'NURSE': 0.0, 'NA': 0.015, 'TRADE': 0.0}
     },
-    'nurse_baseline': {
-        'name': 'Nursing Baseline',
+    'kenya_baseline': {
+        'name': 'Kenya Baseline',
         'description': 'Nursing baseline scenario with more assistant track than nursing degrees.',
-        'program_type': 'Nurse',
+        'program_type': 'Kenya',
         'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.60, 'NURSE': 0.25, 'NA': 0.15, 'TRADE': 0.0}
     },
-    'nurse_conservative': {
-        'name': 'Nursing Conservative',
+    'kenya_conservative': {
+        'name': 'Kenya Conservative',
         'description': 'Higher proportion of assistant track degrees, more dropouts.',
-        'program_type': 'Nurse',
+        'program_type': 'Kenya',
         'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.50, 'NURSE': 0.20, 'NA': 0.30, 'TRADE': 0.0}
     },
-    'nurse_optimistic': {
-        'name': 'Nursing Optimistic',
+    'kenya_optimistic': {
+        'name': 'Kenya Optimistic',
         'description': 'Higher proportion of nursing degrees, no dropouts.',
-        'program_type': 'Nurse',
+        'program_type': 'Kenya',
         'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.60, 'NA': 0.0, 'TRADE': 0.0}
     },
-    'trade_baseline': {
-        'name': 'Trade Baseline',
+    'rwanda_baseline': {
+        'name': 'Rwanda Baseline',
         'description': 'Standard trade program distribution.',
-        'program_type': 'Trade',
+        'program_type': 'Rwanda',
         'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.0, 'NA': 0.20, 'TRADE': 0.40}
     },
-    'trade_conservative': {
-        'name': 'Trade Conservative',
+    'rwanda_conservative': {
+        'name': 'Rwanda Conservative',
         'description': 'Higher dropout rate for trade programs.',
-        'program_type': 'Trade',
+        'program_type': 'Rwanda',
         'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.40, 'NURSE': 0.0, 'NA': 0.40, 'TRADE': 0.2}
     },
-    'trade_optimistic': {
-        'name': 'Trade Optimistic',
+    'rwanda_optimistic': {
+        'name': 'Rwanda Optimistic',
         'description': 'Very low dropout rate for trade programs.',
-        'program_type': 'Trade',
+        'program_type': 'Rwanda',
         'degrees': {'BA': 0.0, 'MA': 0.0, 'ASST': 0.35, 'NURSE': 0.0, 'NA': 0.05, 'TRADE': 0.60}
     }
 }
@@ -117,254 +117,349 @@ app.layout = html.Div([
     dcc.Tabs([
         dcc.Tab(label='About', children=[
             html.Div([
-                html.H2("About the ISA Analysis Tool", style={'marginBottom': '20px'}),
+                html.H1("ISA Analysis Tool", style={'textAlign': 'center', 'marginBottom': '30px', 'color': '#2c3e50'}),
                 
-                html.H3("Overview", style={'marginTop': '30px'}),
-                html.P([
-                    "This tool simulates Income Share Agreement (ISA) outcomes for students in various educational programs, ",
-                    "including university degrees, assistant training, and specific trade or nursing tracks. By modeling student earnings, ",
-                    "payment thresholds, and potential dropouts or returns to home countries, it provides a comprehensive view of ",
-                    "investor returns and student payment patterns under different scenarios."
-                ]),
-                
-                html.H3("Key Features", style={'marginTop': '30px'}),
-                html.Ul([
-                    html.Li("Program Simulation: Model ISA outcomes separately for University, Nursing, and Trade pathways."),
-                    html.Li("Multiple Scenarios: Choose among baseline, conservative, or optimistic enrollment and graduation distributions."),
-                    html.Li("Degree Distributions: Adjust the proportion of students pursuing different degrees, such as bachelor's, master's, and assistant programs."),
-                    html.Li("Economic Modeling: Incorporate inflation, unemployment, and experience-based earnings growth to reflect real-world variability."),
-                    html.Li("Investor Returns & Student Payments: Estimate how changes in program parameters, dropouts, or home-country returns affect the financial outcomes for all parties.")
-                ]),
-                
-                html.H3("Model Assumptions", style={'marginTop': '30px'}),
-                
-                html.H4("1. Degree Types & Earnings", style={'marginTop': '20px'}),
-                html.P([
-                    "The model uses several distinct tracks, each with mean earnings, variances, and completion times that approximate real-world data. ",
-                    "A 20% wage penalty is applied to some programs to account for immigrant status and the fact that new graduates typically earn below the field average. ",
-                    "The six degree categories are:"
-                ]),
-                
+                # Background Section
                 html.Div([
-                    html.H5("Bachelor's Degree (BA)"),
+                    html.H2("Background", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
+                    html.P([
+                        "Income Share Agreements (ISAs) represent an innovative approach to educational financing where students receive funding for their education in exchange for a percentage of their future income over a defined period. ",
+                        "Unlike traditional loans with fixed repayments regardless of outcomes, ISAs align incentives between funders and students—payments scale with a graduate's actual earnings success."
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.P([
+                        html.A("Malengo", href="https://www.malengo.org", target="_blank"), 
+                        " is a nonprofit organization that connects talented students from developing countries with educational opportunities abroad through ISA financing. ",
+                        "The organization's mission focuses on reducing barriers to migration—a strategy with enormous potential impact, as research suggests the estimated global gains from reducing migration barriers dwarf those related to other policy restrictions by one or two orders of magnitude."
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    
+                    html.H3("The Malengo Model", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "Malengo currently operates a Uganda–Germany Program that prepares academically talented but financially constrained students from Uganda for admission to English-speaking Bachelor's programs at German universities. The organization:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
                     html.Ul([
-                        html.Li("Mean earnings: $41,300/year"),
-                        html.Li("SD: $6,000"),
-                        html.Li("Annual Experience Growth: 3%"),
-                        html.Li("Years to Complete: 4")
-                    ])
-                ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
+                        html.Li("Provides financial support covering first-year living expenses, semester fees, travel, and application costs", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Selects students through a competitive process based on academic excellence, limited financial means, and motivation", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Supports training in both university programs and Germany's highly-regarded vocational training system (Ausbildung)", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Uses Income Share Agreements to create a sustainable funding model where successful graduates contribute back to support future students", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    
+                    html.H3("Economic Impact", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "The economic benefits of Malengo's approach are substantial:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li("Individual participants can access wages up to 19 times higher than they would earn in Uganda", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Remittances flow back to families and communities in the home country", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Research suggests significant spillover effects, with migration contributing to dramatic improvements in GDP growth in developing nations", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("German universities and vocational programs offer tuition-free high-quality education, maximizing the return on investment", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    
+                    html.H3("Program Paths", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "Malengo supports three primary educational paths in different countries:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li([html.Strong("Uganda Program: "), "English-language Bachelor's degrees at German universities, with students typically supporting themselves through part-time work after the first year"], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([html.Strong("Kenya Program: "), "German 'Ausbildung' programs focused on nursing and healthcare fields, combining classroom learning with practical training and providing a modest salary during the training period. Students spend the first year in intensive German language training before traveling to Germany."], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([html.Strong("Rwanda Program: "), "German 'Ausbildung' programs in trade skills like mechatronics, solar installation, and other technical fields. Like the Kenya program, students complete a year of German language training before beginning their vocational training in Germany."], style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    
+                    html.H3("Language Training", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "For the Kenya and Rwanda programs, Malengo invests in a full year of intensive German language training before students travel to Germany. This essential preparation:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li("Brings students to the B1/B2 German proficiency level required for vocational training", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Represents a significant portion of the overall program investment", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Extends the timeline for investor returns, as payments begin only after students complete their training and find employment", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Dramatically increases student success rates and long-term employment prospects", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    
+                    html.P([
+                        "This tool helps model and analyze the financial sustainability of Income Share Agreements across these different program paths, allowing for optimization of support structures while ensuring that both students and funding partners benefit."
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginTop': '15px'}),
+                ], style={'marginBottom': '30px'}),
                 
+                # Objectives Section
                 html.Div([
-                    html.H5("Master's Degree (MA)"),
+                    html.H2("Objectives", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
+                    html.P([
+                        "This simulation tool helps stakeholders understand the financial outcomes of ISA programs across various scenarios and student pathways. The tool specifically aims to:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
                     html.Ul([
-                        html.Li("Mean earnings: $46,709/year"),
-                        html.Li("SD: $6,600"),
-                        html.Li("Annual Experience Growth: 4%"),
-                        html.Li("Years to Complete: 6")
-                    ])
-                ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
+                        html.Li("Model expected returns on educational investments across different program types and student outcomes", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Simulate how various factors (unemployment, wage penalties, international labor mobility) affect student repayment patterns", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Provide investors and educational program designers with data-driven insights for program structure and financial planning", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Create transparency around the financial mechanics of ISAs for all stakeholders", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'})
+                ], style={'marginBottom': '30px'}),
                 
+                # Methodology Section
                 html.Div([
-                    html.H5("Assistant Track (ASST)"),
+                    html.H2("Methodology", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
+                    
+                    html.H3("Program Simulation", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "This tool simulates Income Share Agreement (ISA) outcomes for students in various educational programs, ",
+                        "including university degrees, assistant training, and specific trade or nursing tracks. By modeling student earnings, ",
+                        "payment thresholds, and potential dropouts or returns to home countries, it provides a comprehensive view of ",
+                        "investor returns and student payment patterns under different scenarios."
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    
+                    html.H3("Economic Modeling", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "The simulation incorporates key economic factors including:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
                     html.Ul([
-                        html.Li("Mean earnings: $31,500/year"),
-                        html.Li("SD: $2,800"),
-                        html.Li("Annual Experience Growth: .5%"),
-                        html.Li("Years to Complete: 3")
-                    ])
-                ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
+                        html.Li("Inflation (defaulted to 2% annually)", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Unemployment (variable, with 4-8% defaults)", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Immigrant wage penalties (approximately 20%)", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Career progression with experience-based salary growth", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Labor market exit probability (representing return to home countries)", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    
+                    html.H3("Scenario Analysis", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "The tool offers three scenario types for each educational pathway:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li("Baseline: Realistic projections based on current data", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Conservative: Higher dropout rates, lower advanced degree completion", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Optimistic: Better degree completion, fewer dropouts, higher employment retention", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'})
+                ], style={'marginBottom': '30px'}),
                 
+                # Key Features Section
                 html.Div([
-                    html.H5("Nursing Degree (NURSE)"),
+                    html.H2("Key Features", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
                     html.Ul([
-                        html.Li("Mean earnings: $40,000/year"),
-                        html.Li("SD: $4,000"),
-                        html.Li("Annual Experience Growth: 2%"),
-                        html.Li("Years to Complete: 4")
-                    ])
-                ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
+                        html.Li([html.Strong("Program-Specific Simulations:"), " Model distinct ISA outcomes for university degrees, nursing qualifications, assistant training, and trade education pathways."], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginBottom': '10px'}),
+                        html.Li([html.Strong("Scenario Analysis:"), " Utilize baseline, conservative, and optimistic scenarios to evaluate a wide range of potential outcomes based on enrollment distributions and graduation rates."], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginBottom': '10px'}),
+                        html.Li([html.Strong("Degree and Earnings Customization:"), " Adjust proportions across bachelor's, master's, assistant, and trade programs, each with detailed earnings profiles and growth projections reflecting real-world data."], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginBottom': '10px'}),
+                        html.Li([html.Strong("Economic Realism:"), " Incorporate key economic factors such as inflation, unemployment, immigrant wage penalties, and realistic salary progression based on experience."], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginBottom': '10px'}),
+                        html.Li([html.Strong("ISA Terms and Payment Modeling:"), " Clearly defined repayment terms, including ISA caps and income thresholds, ensure transparent financial interactions between students and investors."], style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'})
+                ], style={'marginBottom': '30px'}),
                 
+                # Model Parameters Section
                 html.Div([
-                    html.H5("Trade Program (TRADE)"),
+                    html.H2("Model Parameters", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
+                    
+                    html.H3("Degree Tracks", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "The model uses six distinct tracks, each with mean earnings, variances, and completion times that approximate real-world data:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    
+                    html.Div([
+                        html.Div([
+                            html.H4("1. Bachelor's Degree (BA)", style={'color': '#2c3e50'}),
+                            html.Ul([
+                                html.Li("Mean earnings: $41,300/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Standard deviation: $6,000", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Annual Experience Growth: 3%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Years to Complete: 4", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                            ], style={'paddingLeft': '20px'})
+                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                        
+                        html.Div([
+                            html.H4("2. Master's Degree (MA)", style={'color': '#2c3e50'}),
+                            html.Ul([
+                                html.Li("Mean earnings: $46,709/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Standard deviation: $6,600", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Annual Experience Growth: 4%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Years to Complete: 6", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                            ], style={'paddingLeft': '20px'})
+                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'})
+                    ], style={'marginBottom': '20px'}),
+                    
+                    html.Div([
+                        html.Div([
+                            html.H4("3. Assistant Track (ASST)", style={'color': '#2c3e50'}),
+                            html.Ul([
+                                html.Li("Mean earnings: $31,500/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Standard deviation: $2,800", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Annual Experience Growth: 0.5%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Years to Complete: 3", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                            ], style={'paddingLeft': '20px'})
+                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                        
+                        html.Div([
+                            html.H4("4. Nursing Degree (NURSE)", style={'color': '#2c3e50'}),
+                            html.Ul([
+                                html.Li("Mean earnings: $40,000/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Standard deviation: $4,000", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Annual Experience Growth: 2%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Years to Complete: 4", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                            ], style={'paddingLeft': '20px'})
+                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'})
+                    ], style={'marginBottom': '20px'}),
+                    
+                    html.Div([
+                        html.Div([
+                            html.H4("5. Trade Program (TRADE)", style={'color': '#2c3e50'}),
+                            html.Ul([
+                                html.Li("Mean earnings: $35,000/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Standard deviation: $3,000", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Annual Experience Growth: 2%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Years to Complete: 3", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                            ], style={'paddingLeft': '20px'})
+                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
+                        
+                        html.Div([
+                            html.H4("6. No Advancement (NA)", style={'color': '#2c3e50'}),
+                            html.Ul([
+                                html.Li("Mean earnings: $2,200/year", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Standard deviation: $640", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Annual Experience Growth: 1%", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("Years to Complete: 4", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                html.Li("100% Probability of Returning Home", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                            ], style={'paddingLeft': '20px'})
+                        ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'})
+                    ], style={'marginBottom': '20px'}),
+                    
+                    html.H3("Earnings Profiles", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "We derive salary levels from public labor data and research on earnings for new graduates in high-income countries. ",
+                        "The baseline is then adjusted for:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
                     html.Ul([
-                        html.Li("Mean earnings: $35,000/year"),
-                        html.Li("SD: $3,000"),
-                        html.Li("Annual Experience Growth: 2%"),
-                        html.Li("Years to Complete: 3")
-                    ])
-                ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
+                        html.Li("Immigrant Wage Penalty (~20%) – Reflects both potential employer bias and the reality that newcomers to a field/country typically earn less early in their careers.", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Career Stage – The model targets entry-level and early-career professionals with realistic wage increases over time.", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Program-specific growth trajectories – Different careers have distinct salary progression patterns.", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    
+                    html.H3("ISA Terms", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "The ISA terms vary by program type and include:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li([html.Strong("Payment Thresholds:"), " Students only make payments when their income exceeds $27,000 per year"], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([html.Strong("Income Percentage:"), 
+                                 html.Ul([
+                                     html.Li("University: 14% of income above threshold", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                     html.Li("Nursing: 12% of income above threshold", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                     html.Li("Trade: 12% of income above threshold", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                                 ], style={'paddingLeft': '20px'})
+                                ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([html.Strong("Payment Caps:"), 
+                                 html.Ul([
+                                     html.Li("University: $72,500 total repayment cap", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                     html.Li("Nursing: $49,950 total repayment cap", style={'fontSize': '16px', 'lineHeight': '1.5'}),
+                                     html.Li("Trade: $45,000 total repayment cap", style={'fontSize': '16px', 'lineHeight': '1.5'})
+                                 ], style={'paddingLeft': '20px'})
+                                ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([html.Strong("Term Limit:"), " All ISAs have a 10-year maximum repayment period"], style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'})
+                ], style={'marginBottom': '30px'}),
                 
+                # Implementation Section
                 html.Div([
-                    html.H5("No Advancement (NA)"),
+                    html.H2("Implementation", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
+                    html.P([
+                        "This interactive dashboard allows users to:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
                     html.Ul([
-                        html.Li("Mean earnings: $2,200/year"),
-                        html.Li("SD: $640"),
-                        html.Li("Annual Experience Growth: 1%"),
-                        html.Li("Years to Complete: 4"),
-                        html.Li("100% Probability of Returning Home: Lower wages reflect a situation where a student does not gain additional skills or remains employed in a low-wage home country context.")
-                    ])
-                ], style={'marginLeft': '20px', 'marginBottom': '15px'}),
+                        html.Li("Select program types (University, Nursing, or Trade) with preset or custom degree distributions", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Adjust economic parameters like unemployment, inflation, and labor force participation", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Customize ISA terms including payment percentages, thresholds, and caps", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Run Monte Carlo simulations to test robustness against parameter variation", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Save and compare multiple scenarios to identify optimal program structures", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    html.P([
+                        "Users navigate through tabs to access simulations, compare results, and analyze detailed outcomes including IRR distributions, repayment patterns, and student success metrics."
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'})
+                ], style={'marginBottom': '30px'}),
                 
-                html.H4("2. Earnings Methodology", style={'marginTop': '20px'}),
-                html.P([
-                    "We derive salary levels from public labor data and research on earnings for new graduates in high-income countries. Links are at bottom of page.",
-                    "This baseline is then adjusted for the following:"
-                ]),
-                html.Ul([
-                    html.Li("Immigrant Wage Penalty (~20%) – Reflects both potential employer bias and the reality that newcomers to a field/country typically earn less early in their careers."),
-                    html.Li("Career Stage – The model targets entry-level and early-career professionals. Over time, the annual experience growth rate builds in realistic wage increases.")
-                ]),
+                # Expected Outcomes Section
+                html.Div([
+                    html.H2("Expected Outcomes", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
+                    html.P([
+                        "The ISA Analysis Tool provides stakeholders with:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li("Data-driven understanding of expected investor returns across different program structures", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Insights into how student outcomes vary by degree type, economic conditions, and program design", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Ability to test the robustness of ISA models across conservative, baseline, and optimistic scenarios", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Quantification of risk-return profiles to support investment decisions", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Transparent assessment of how ISA structures impact student affordability and investor returns", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'})
+                ], style={'marginBottom': '30px'}),
                 
-                html.H5("University Program Earnings", style={'marginTop': '15px'}),
-                html.P([
-                    "In addition to the general BA or MA earnings, we refine earnings for university students based on a detailed degree mix:"
-                ]),
-                html.Ul([
-                    html.Li("Tax & Law (21%): ~€60,000 initial (after 20% penalty)"),
-                    html.Li("Business & Management (19%): ~€63,000 initial"),
-                    html.Li("Engineering (21%): ~€52,000 initial"),
-                    html.Li("Natural Sciences (18%): ~€49,000 initial"),
-                    html.Li("Information Technology (7%): ~€45,000 initial"),
-                    html.Li("Agriculture (7%): ~€35,000 initial"),
-                    html.Li("Humanities & Arts (3%): ~€36k–€40k initial"),
-                    html.Li("Other Fields (4%): ~€40,000 initial")
-                ]),
-                html.P([
-                    "Overall, university graduates have the following earnings profiles:", html.Br(),
-                    "- Bachelor's (BA): $41,300 average with $6,000 standard deviation and 3% annual growth", html.Br(),
-                    "- Master's (MA): $46,709 average with $6,600 standard deviation and 4% annual growth", html.Br(),
-                    "The model assumes that university students have a 5% chance of leaving the labor market after graduation."
-                ]),
+                # Future Development Section
+                html.Div([
+                    html.H2("Future Development", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
+                    html.P([
+                        "We plan to enhance the ISA Analysis Tool with:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li("Integration with actual student outcome data as Malengo's programs mature", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("More granular country-specific economic and labor market parameters", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Dynamic ISA term optimization to balance student affordability and investor returns", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Additional educational pathway models as Malengo expands program offerings", style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li("Advanced risk assessment tools for portfolio-level analysis", style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    html.P([
+                        "These enhancements will make the tool increasingly valuable for educational financing decisions as Malengo grows its impact worldwide."
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'})
+                ], style={'marginBottom': '30px'}),
                 
-                html.H5("Nursing Program Earnings", style={'marginTop': '15px'}),
-                html.Ul([
-                    html.Li("Nursing (NURSE): Average $40,000 annually with a $4,000 standard deviation. A reasonable career progression with 2% annual growth."),
-                    html.Li("Assistant Track (ASST): Median $31,500 annually with a $2,800 standard deviation. Reflects roles like Nurse Assistant, Building Technician, etc. with 0.5% annual growth.")
-                ]),
-                
-                html.H5("Trade Program Earnings", style={'marginTop': '15px'}),
-                html.P([
-                    "The Trade track (TRADE) features skilled manual roles like plumbing, electrical work, and other trades. ",
-                    "A $35,000 mean salary with a $3,000 standard deviation and 2% annual growth captures steady wage progression in these fields."
-                ]),
-                
-                html.H4("Predefined Scenarios", style={'marginTop': '20px'}),
-                html.P([
-                    "To facilitate comparison, the model includes preset enrollment distributions for each program category:"
-                ]),
-                
-                html.H5("University Programs", style={'marginTop': '15px'}),
-                html.Ul([
-                    html.Li("Baseline: 45% BA, 24% MA, 27% ASST, 4% NA"),
-                    html.Li("Conservative: 32% BA, 11% MA, 42% ASST, 15% NA"),
-                    html.Li("Optimistic: 63% BA, 33% MA, 2.5% ASST, 1.5% NA")
-                ]),
-                
-                html.H5("Nursing Programs", style={'marginTop': '15px'}),
-                html.Ul([
-                    html.Li("Baseline: 25% Nursing, 60% Assistant Track, 15% No Advancement"),
-                    html.Li("Conservative: 20% Nursing, 50% Assistant Track, 30% No Advancement"),
-                    html.Li("Optimistic: 60% Nursing, 40% Assistant Track, 0% No Advancement")
-                ]),
-                
-                html.H5("Trade Programs", style={'marginTop': '15px'}),
-                html.Ul([
-                    html.Li("Baseline: 40% Trade, 40% Assistant Track, 20% No Advancement"),
-                    html.Li("Conservative: 20% Trade, 50% Assistant Track, 30% No Advancement"),
-                    html.Li("Optimistic: 70% Trade, 20% Assistant Track, 10% No Advancement")
-                ]),
-                
-                html.H4("Economic Parameters", style={'marginTop': '20px'}),
-                html.Ul([
-                    html.Li("Inflation: 2% annually"),
-                    html.Li("Unemployment: 8% default rate"),
-                    html.Li(html.Span(["ISA Caps:", html.Br(),
-                                      "University: $72,500", html.Br(),
-                                      "Nursing: $49,950", html.Br(),
-                                      "Trade: $45,000"])),
-                    html.Li(html.Span(["ISA Percentage:", html.Br(),
-                                      "University: 14%", html.Br(),
-                                      "Nursing: 12%", html.Br(),
-                                      "Trade: 12%"]))
-                ]),
-                html.P([
-                    "These parameters shape the cash flow between students and investors. For example, if a student's earnings exceed $27,000, ",
-                    "they pay a fixed percentage until reaching the ISA cap (which protects them from disproportionately high repayment if incomes skyrocket)."
-                ]),
-                
-                html.H4("Foreign Student Modeling", style={'marginTop': '20px'}),
-                html.P([
-                    "We account for the possibility that some graduates leave the labor force after completing (or dropping out of) their program:"
-                ]),
-                html.Ul([
-                    html.Li("The leave_labor_force_probability parameter determines the likelihood of leaving the labor force."),
-                    html.Li("Once out of the labor force, a student's earnings are much lower, reflecting the typically lower wages or lack of employment."),
-                    html.Li("The No Advancement (NA) category defaults to a 100% leave labor force probability to signify no sustained earnings improvement or job market constraints.")
-                ]),
-                html.P([
-                    "This allows the tool to distinguish between high-earning paths (where students remain in the host country or another HIC) ",
-                    "and those that revert to lower wages if the student does not remain abroad or does not advance academically."
-                ]),
-                
-                html.H4("Putting It All Together", style={'marginTop': '20px'}),
-                html.P([
-                    "By combining:"
-                ]),
-                html.Ul([
-                    html.Li("Program and degree distributions (e.g., percentage of students choosing each path)"),
-                    html.Li("Earnings profiles (with immigrant penalties, growth rates, and standard deviations)"),
-                    html.Li("Return-home probabilities and economic parameters (inflation, unemployment)"),
-                    html.Li("ISA mechanics (thresholds, caps, and rates)")
-                ]),
-                html.P([
-                    "…the model forecasts total student earnings, ISA payment streams, and ultimate returns to investors or lenders. ",
-                    "Through this flexible and data-informed approach, users can test different assumptions about student pathways and labor market outcomes, ",
-                    "then see how changes in these factors drive key financial results—both for the students and for the financing entity behind the ISAs."
-                ]),
-                
-                # Add German profession names and salary reference links
-                html.H4("German Profession Names & Salary References", style={'marginTop': '20px'}),
-                html.P([
-                    "Below are the German names for the professions mentioned above, along with specific job examples for each degree type:"
-                ]),
-                html.Ul([
-                    html.Li([
-                        html.Strong("Bachelor's Degree (BA) - Bachelorabschluss"), html.Br(),
-                        "Example professions: Chemieingenieur/in (Chemical Engineer), Jurist/in (Lawyer), Wirtschaftsingenieur/in (Business Engineer), Informatiker/in (Computer Scientist)"
-                    ]),
-                    html.Li([
-                        html.Strong("Master's Degree (MA) - Masterabschluss"), html.Br(),
-                        "Example professions: Maschinenbauingenieur/in (Mechanical Engineer), Architekt/in (Architect), Betriebswirt/in (Business Administrator), Physiker/in (Physicist)"
-                    ]),
-                    html.Li([
-                        html.Strong("Assistant Track (ASST) - Assistenzausbildung"), html.Br(),
-                        "Example professions: Pflegehelfer/in (Nurse Assistant), Altenpflegehelfer/in (Geriatric Nurse Care), Solaranlagenmonteur/in (Solar Installer), Technische/r Assistent/in (Technical Assistant)"
-                    ]),
-                    html.Li([
-                        html.Strong("Nursing Degree (NURSE) - Krankenpflegeausbildung"), html.Br(),
-                        "Example professions: Krankenschwester/Krankenpfleger (Nurse), Gesundheits- und Krankenpfleger/in (Healthcare and Nursing Professional)"
-                    ]),
-                    html.Li([
-                        html.Strong("Trade Program (TRADE) - Handwerksausbildung"), html.Br(),
-                        "Example professions: Mechatroniker/in (Mechatronics Engineer), Klempner/in (Plumber), Elektriker/in (Electrician), Schreiner/in (Carpenter)"
-                    ])
-                ]),
-                
-                html.P([
-                    "Salary reference resources:"
-                ]),
-                html.Ul([
-                    html.Li(html.A("German Government Earnings Atlas (Entgeltatlas)", href="https://web.arbeitsagentur.de/entgeltatlas/beruf/134712", target="_blank")),
-                    html.Li(html.A("StepStone Salary Data for Elektroniker", href="https://www.stepstone.de/gehalt/Elektroniker-in.html", target="_blank")),
-                    html.Li(html.A("JobVector Salary Information", href="https://www.jobvector.de/gehalt/Elektroniker/", target="_blank")),
-                    html.Li(html.A("Gehalt.de Profession Data", href="https://www.gehalt.de/beruf/elektroniker-elektronikerin", target="_blank"))
-                ]),
-                
-                html.P([
-                    "Additional salary information for other professions can be found by searching these and similar websites with the German profession names listed above."
-                ]),
-            ], style={'padding': '20px'})
+                # References Section (preserved from original)
+                html.Div([
+                    html.H2("Additional Resources", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
+                    
+                    html.H4("Graduation Rate Data Sources", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "Our graduation rate assumptions are based on several key German educational research sources:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li([
+                            html.A("DZHW Brief 05/2022", href="https://www.dzhw.eu/pdf/pub_brief/dzhw_brief_05_2022_anhang.pdf", target="_blank"),
+                            " - The table illustrates a baseline dropout rate of 40% for international students; however, Malengo students currently outperform this benchmark with 95% retention rate due to their specialized support system and rigorous selection process."
+                        ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([
+                            html.A("BIBB Data Report 2015 (Vocational Training)", href="https://www.bibb.de/datenreport/de/2015/30777.php", target="_blank"),
+                            " - The table indicates that 32% of non-German students terminate vocational training prior to completing their exams, compared to 13% of students with previous university experience. Approximately 50% of these early terminations result in transfers to alternative programs rather than complete dropouts, leading to an overall dropout rate of roughly 16%. Malengo currently lacks sufficient data to assess these findings independently."
+                        ], style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    
+                    html.H4("German Profession Names & Salary References", style={'color': '#2c3e50', 'marginTop': '20px'}),
+                    html.P([
+                        "Below are the German names for the professions mentioned above, along with specific job examples for each degree type:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li([
+                            html.Strong("Bachelor's Degree (BA) - Bachelorabschluss"), html.Br(),
+                            "Example professions: Chemieingenieur/in (Chemical Engineer), Jurist/in (Lawyer), Wirtschaftsingenieur/in (Business Engineer), Informatiker/in (Computer Scientist)"
+                        ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([
+                            html.Strong("Master's Degree (MA) - Masterabschluss"), html.Br(),
+                            "Example professions: Maschinenbauingenieur/in (Mechanical Engineer), Architekt/in (Architect), Betriebswirt/in (Business Administrator), Physiker/in (Physicist)"
+                        ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([
+                            html.Strong("Assistant Track (ASST) - Assistenzausbildung"), html.Br(),
+                            "Example professions: Pflegehelfer/in (Nurse Assistant), Altenpflegehelfer/in (Geriatric Nurse Care), Solaranlagenmonteur/in (Solar Installer), Technische/r Assistent/in (Technical Assistant)"
+                        ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([
+                            html.Strong("Nursing Degree (NURSE) - Krankenpflegeausbildung"), html.Br(),
+                            "Example professions: Krankenschwester/Krankenpfleger (Nurse), Gesundheits- und Krankenpfleger/in (Healthcare and Nursing Professional)"
+                        ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li([
+                            html.Strong("Trade Program (TRADE) - Handwerksausbildung"), html.Br(),
+                            "Example professions: Mechatroniker/in (Mechatronics Engineer), Klempner/in (Plumber), Elektriker/in (Electrician), Schreiner/in (Carpenter)"
+                        ], style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                    
+                    html.P([
+                        "Salary reference resources:"
+                    ], style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                    html.Ul([
+                        html.Li(html.A("German Government Earnings Atlas (Entgeltatlas)", href="https://web.arbeitsagentur.de/entgeltatlas/beruf/134712", target="_blank"), style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li(html.A("StepStone Salary Data for Elektroniker", href="https://www.stepstone.de/gehalt/Elektroniker-in.html", target="_blank"), style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li(html.A("JobVector Salary Information", href="https://www.jobvector.de/gehalt/Elektroniker/", target="_blank"), style={'fontSize': '16px', 'lineHeight': '1.6'}),
+                        html.Li(html.A("Gehalt.de Profession Data", href="https://www.gehalt.de/beruf/elektroniker-elektronikerin", target="_blank"), style={'fontSize': '16px', 'lineHeight': '1.6'})
+                    ], style={'paddingLeft': '30px'}),
+                ], style={'marginBottom': '30px'})
+            ], style={'padding': '20px', 'maxWidth': '1200px', 'margin': '0 auto'})
         ]),
         
         dcc.Tab(label='Simulation', children=[
@@ -380,11 +475,11 @@ app.layout = html.Div([
                             dcc.RadioItems(
                                 id="program-type",
                                 options=[
-                                    {'label': 'University', 'value': 'University'},
-                                    {'label': 'Nurse', 'value': 'Nurse'},
-                                    {'label': 'Trade', 'value': 'Trade'}
+                                    {'label': 'Uganda', 'value': 'Uganda'},
+                                    {'label': 'Kenya', 'value': 'Kenya'},
+                                    {'label': 'Rwanda', 'value': 'Rwanda'}
                                 ],
-                                value="University",
+                                value="Uganda",
                                 labelStyle={'display': 'block', 'marginBottom': '10px'},
                             ),
                         ], style={'marginBottom': '20px'}),
@@ -720,7 +815,7 @@ app.layout = html.Div([
                                     dcc.Input(
                                         id="isa-percentage-input", 
                                         type="number", 
-                                        value=14,  # Default to University values
+                                        value=14,  # Default to Uganda values
                                         min=0, 
                                         max=100, 
                                         step=0.1,
@@ -743,7 +838,7 @@ app.layout = html.Div([
                                     dcc.Input(
                                         id="isa-cap-input", 
                                         type="number", 
-                                        value=72500,  # Default to University values
+                                        value=72500,  # Default to Uganda values
                                         min=0, 
                                         step=1000,
                                         style={'width': '100%'}
@@ -757,7 +852,7 @@ app.layout = html.Div([
                             dcc.Dropdown(
                                 id="preset-scenario",
                                 options=[{'label': preset_scenarios[k]['name'], 'value': k} for k in preset_scenarios.keys()],
-                                value="university_baseline",
+                                value="uganda_baseline",
                                 placeholder="Select a preset scenario (optional)"
                             ),
                             html.Div(id="preset-description", style={'color': '#666', 'fontSize': '0.9em', 'marginTop': '5px'})
@@ -850,6 +945,9 @@ app.layout = html.Div([
                                 ]),
                                 dcc.Tab(label='Payment Distribution', children=[
                                     dcc.Graph(id="payment-distribution")
+                                ]),
+                                dcc.Tab(label='Payment Data Table', children=[
+                                    html.Div(id="payment-data-table")
                                 ]),
                                 dcc.Tab(label='Investor vs Malengo', children=[
                                     dcc.Graph(id="investor-malengo-split")
@@ -1250,24 +1348,24 @@ def update_from_preset(preset_name, program_type):
     
     # Use different default presets based on program type
     if preset_name is None or preset_name not in preset_scenarios:
-        if program_type == 'University':
-            # Default to Baseline for University
-            preset_name = 'university_baseline'
-        elif program_type == 'Nurse':
-            # Default to Nurse Baseline for Nurse
-            preset_name = 'nurse_baseline'
+        if program_type == 'Uganda':
+            # Default to Baseline for Uganda
+            preset_name = 'uganda_baseline'
+        elif program_type == 'Kenya':
+            # Default to Kenya Baseline for Kenya
+            preset_name = 'kenya_baseline'
         else:
-            # Default to Trade Baseline for Trade
-            preset_name = 'trade_baseline'
+            # Default to Rwanda Baseline for Rwanda
+            preset_name = 'rwanda_baseline'
     
     # If program type changed and we have a preset that's better suited for the new program type
     if triggered_id == 'program-type':
-        if program_type == 'University' and preset_name in ['nurse_baseline', 'nurse_conservative', 'nurse_optimistic', 'trade_baseline', 'trade_conservative', 'trade_optimistic']:
-            preset_name = 'university_baseline'
-        elif program_type == 'Nurse' and preset_name in ['baseline', 'conservative', 'optimistic', 'trade_baseline', 'trade_conservative', 'trade_optimistic']:
-            preset_name = 'nurse_baseline'
-        elif program_type == 'Trade' and preset_name in ['baseline', 'conservative', 'optimistic', 'nurse_baseline', 'nurse_conservative', 'nurse_optimistic']:
-            preset_name = 'trade_baseline'
+        if program_type == 'Uganda' and preset_name in ['kenya_baseline', 'kenya_conservative', 'kenya_optimistic', 'rwanda_baseline', 'rwanda_conservative', 'rwanda_optimistic']:
+            preset_name = 'uganda_baseline'
+        elif program_type == 'Kenya' and preset_name in ['baseline', 'conservative', 'optimistic', 'rwanda_baseline', 'rwanda_conservative', 'rwanda_optimistic']:
+            preset_name = 'kenya_baseline'
+        elif program_type == 'Rwanda' and preset_name in ['baseline', 'conservative', 'optimistic', 'uganda_baseline', 'uganda_conservative', 'uganda_optimistic']:
+            preset_name = 'rwanda_baseline'
     
     # Get the preset
     preset = preset_scenarios[preset_name]
@@ -1360,22 +1458,22 @@ def run_simulation(n_clicks, program_type, degree_dist_type, ba_pct, ma_pct, ass
             num_sims=num_sims,
             ba_salary=ba_salary,
             ba_std=ba_std,
-            ba_growth=ba_growth,
+            ba_growth=ba_growth/ 100.0,
             ma_salary=ma_salary,
             ma_std=ma_std,
-            ma_growth=ma_growth,
+            ma_growth=ma_growth/ 100.0,
             asst_salary=asst_salary,
             asst_std=asst_std,
-            asst_growth=asst_growth,
+            asst_growth=asst_growth/ 100.0,
             nurse_salary=nurse_salary,
             nurse_std=nurse_std,
-            nurse_growth=nurse_growth,
+            nurse_growth=nurse_growth/ 100.0,
             na_salary=na_salary,
             na_std=na_std,
-            na_growth=na_growth,
+            na_growth=na_growth/ 100.0,
             trade_salary=trade_salary,
             trade_std=trade_std,
-            trade_growth=trade_growth,
+            trade_growth=trade_growth/ 100.0,
             isa_percentage=isa_percentage,
             isa_threshold=isa_threshold,
             isa_cap=isa_cap,
@@ -1463,17 +1561,8 @@ def update_payment_distribution(results):
         x=payment_by_year.index,
         y=payment_by_year.values,
         name="Average Payment by Year",
-        marker_color='rgb(55, 83, 109)'
-    ))
-    
-    # Add a horizontal line for the investment amount
-    avg_annual_investment = results['total_investment'] / payment_by_year.shape[0]
-    fig.add_trace(go.Scatter(
-        x=[0, payment_by_year.shape[0]-1],
-        y=[avg_annual_investment, avg_annual_investment],
-        mode='lines',
-        name='Avg. Annual Investment',
-        line=dict(color='red', dash='dash')
+        marker_color='rgb(55, 83, 109)',
+        hovertemplate="Year: %{x}<br>Average Payment: $%{y:,.0f}<extra></extra>"
     ))
     
     fig.update_layout(
@@ -1872,11 +1961,11 @@ def update_degree_info(results):
     [Input("program-type", "value")]
 )
 def update_isa_params(program_type):
-    if program_type == 'University':
+    if program_type == 'Uganda':
         return 14, 27000, 72500
-    elif program_type == 'Nurse':
+    elif program_type == 'Kenya':
         return 12, 27000, 49950
-    elif program_type == 'Trade':
+    elif program_type == 'Rwanda':
         return 12, 27000, 45000  # Changed from 10% to 12%
     else:
         return 12, 27000, 50000  # Default values
@@ -2131,6 +2220,12 @@ def compare_scenarios(n_clicks, saved_scenarios):
      State("nurse-salary", "value"),
      State("na-salary", "value"),
      State("trade-salary", "value"),
+     State("ba-growth", "value"),  # Add growth parameters
+     State("ma-growth", "value"),
+     State("asst-growth", "value"),
+     State("nurse-growth", "value"),
+     State("na-growth", "value"),
+     State("trade-growth", "value"),
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
@@ -2141,6 +2236,7 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
                               unemployment_range, leave_labor_force_range, wage_penalty_range,
                               program_type, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
                               ba_salary, ma_salary, asst_salary, nurse_salary, na_salary, trade_salary,
+                              ba_growth, ma_growth, asst_growth, nurse_growth, na_growth, trade_growth,
                               isa_percentage, isa_threshold, isa_cap,
                               num_students, inflation_rate):
     if not n_clicks:
@@ -2151,11 +2247,11 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
     
     # Set default values for None parameters
     if isa_percentage is None:
-        if program_type == 'University':
+        if program_type == 'Uganda':
             isa_percentage = 14
-        elif program_type == 'Nurse':
+        elif program_type == 'Kenya':
             isa_percentage = 12
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
             isa_percentage = 12  # Changed from 10 to 12
         else:
             isa_percentage = 12
@@ -2164,11 +2260,11 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
         isa_threshold = 27000
     
     if isa_cap is None:
-        if program_type == 'University':
+        if program_type == 'Uganda':
             isa_cap = 72500
-        elif program_type == 'Nurse':
+        elif program_type == 'Kenya':
             isa_cap = 49950
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
             isa_cap = 45000
         else:
             isa_cap = 50000
@@ -2261,11 +2357,17 @@ def run_monte_carlo_simulation(n_clicks, num_sims, complexity,
             na_pct=na_pct / 100.0,
             trade_pct=trade_pct / 100.0,
             ba_salary=adjusted_ba_salary,
+            ba_growth=ba_growth / 100.0,  # Convert from percentage (e.g., 3) to decimal (0.03)
             ma_salary=adjusted_ma_salary,
+            ma_growth=ma_growth / 100.0,  # Convert from percentage (e.g., 4) to decimal (0.04)
             asst_salary=adjusted_asst_salary,
+            asst_growth=asst_growth / 100.0,  # Convert from percentage (e.g., 0.5) to decimal (0.005)
             nurse_salary=adjusted_nurse_salary,
+            nurse_growth=nurse_growth / 100.0,  # Convert from percentage (e.g., 2) to decimal (0.02)
             na_salary=adjusted_na_salary,
+            na_growth=na_growth / 100.0,  # Convert from percentage (e.g., 1) to decimal (0.01)
             trade_salary=adjusted_trade_salary,
+            trade_growth=trade_growth / 100.0,  # Convert from percentage (e.g., 2) to decimal (0.02)
             isa_percentage=(isa_percentage or 12) / 100.0,
             isa_threshold=isa_threshold or 27000,
             isa_cap=isa_cap or 50000,
@@ -2720,6 +2822,12 @@ def validate_weight_sum(weight1, weight2, weight3):
      State("nurse-salary", "value"),
      State("na-salary", "value"),
      State("trade-salary", "value"),
+     State("ba-growth", "value"),  # Add growth parameters
+     State("ma-growth", "value"),
+     State("asst-growth", "value"),
+     State("nurse-growth", "value"),
+     State("na-growth", "value"),
+     State("trade-growth", "value"),
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
@@ -2732,6 +2840,7 @@ def run_blended_monte_carlo(n_clicks, num_sims,
                            leave_labor_force_range, wage_penalty_range,
                            program_type, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
                            ba_salary, ma_salary, asst_salary, nurse_salary, na_salary, trade_salary,
+                           ba_growth, ma_growth, asst_growth, nurse_growth, na_growth, trade_growth,
                            isa_percentage, isa_threshold, isa_cap,
                            num_students, inflation_rate):
     if n_clicks == 0:
@@ -2746,11 +2855,11 @@ def run_blended_monte_carlo(n_clicks, num_sims,
     
     # Set default values for None parameters
     if isa_percentage is None:
-        if program_type == 'University':
+        if program_type == 'Uganda':
             isa_percentage = 14
-        elif program_type == 'Nurse':
+        elif program_type == 'Kenya':
             isa_percentage = 12
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
             isa_percentage = 12  # Changed from 10 to 12
         else:
             isa_percentage = 12
@@ -2759,11 +2868,11 @@ def run_blended_monte_carlo(n_clicks, num_sims,
         isa_threshold = 27000
     
     if isa_cap is None:
-        if program_type == 'University':
+        if program_type == 'Uganda':
             isa_cap = 72500
-        elif program_type == 'Nurse':
+        elif program_type == 'Kenya':
             isa_cap = 49950
-        elif program_type == 'Trade':
+        elif program_type == 'Rwanda':
             isa_cap = 45000
         else:
             isa_cap = 50000
@@ -2786,6 +2895,14 @@ def run_blended_monte_carlo(n_clicks, num_sims,
     if nurse_salary is None: nurse_salary = 40000
     if na_salary is None: na_salary = 2200
     if trade_salary is None: trade_salary = 35000
+    
+    # Set default values for growth parameters if None
+    if ba_growth is None: ba_growth = 3  # 3%
+    if ma_growth is None: ma_growth = 4  # 4%
+    if asst_growth is None: asst_growth = 0.5  # 0.5%
+    if nurse_growth is None: nurse_growth = 2  # 2%
+    if na_growth is None: na_growth = 1  # 1%
+    if trade_growth is None: trade_growth = 2  # 2%
     
     # Normalize weights to sum to 1
     total_weight = scenario1_weight + scenario2_weight + scenario3_weight
@@ -2813,6 +2930,12 @@ def run_blended_monte_carlo(n_clicks, num_sims,
         'nurse_salary': nurse_salary or 40000,
         'na_salary': na_salary or 2200,
         'trade_salary': trade_salary or 35000,
+        'ba_growth': (ba_growth or 0) / 100.0,
+        'ma_growth': (ma_growth or 0) / 100.0,
+        'asst_growth': (asst_growth or 0) / 100.0,
+        'nurse_growth': (nurse_growth or 0) / 100.0,
+        'na_growth': (na_growth or 0) / 100.0,
+        'trade_growth': (trade_growth or 0) / 100.0,
         'isa_percentage': (isa_percentage or 12) / 100.0,
         'isa_threshold': isa_threshold or 27000,
         'isa_cap': isa_cap or 50000,
@@ -3201,6 +3324,186 @@ def run_blended_monte_carlo(n_clicks, num_sims,
     ])
     
     return "", viz_elements
+
+# Callback for payment data table
+@app.callback(
+    Output("payment-data-table", "children"),
+    [Input("simulation-results-store", "data")]
+)
+def update_payment_data_table(results):
+    if not results:
+        return html.Div("Run a simulation to see results")
+    
+    # Convert stored dict back to pandas Series
+    payment_by_year = pd.Series(results['payment_by_year'])
+    
+    # Get number of students and degree completion times
+    num_students = int(results['cap_stats']['payment_cap_count'] + results['cap_stats']['years_cap_count'] + results['cap_stats']['no_cap_count'])
+    
+    # Get degree distribution and completion times
+    degree_pcts = results['degree_pcts']
+    degree_counts = results['degree_counts']
+    
+    # Calculate approximate degree completion times
+    # This is an approximation based on the typical years_to_complete values
+    degree_times = {
+        'BA': 4,
+        'MA': 6,
+        'ASST': 3,
+        'NURSE': 4,
+        'TRADE': 3,
+        'NA': 4
+    }
+    
+    # Calculate weighted average degree completion time
+    avg_completion_time = 0
+    for degree, pct in degree_pcts.items():
+        if degree in degree_times:
+            avg_completion_time += pct * degree_times[degree]
+    
+    # Estimate repayment rate and employment rate over time
+    # Initially everyone is in school, then they gradually complete and enter repayment
+    # based on their degree completion times
+    in_school = []
+    graduated = []
+    repaying = []
+    not_repaying_graduated = []
+    
+    employment_rate = results['employment_rate']
+    repayment_rate = results['repayment_rate']
+    ever_employed_rate = results.get('ever_employed_rate', 0)
+    
+    # Estimate the number of students at each stage by year
+    for year in range(len(payment_by_year)):
+        # Calculate the students still in school for this year
+        students_in_school = 0
+        for degree, count in degree_counts.items():
+            if degree in degree_times:
+                if year < degree_times[degree]:
+                    # All students with this degree are still in school
+                    students_in_school += count
+                elif year == degree_times[degree]:
+                    # Half of the students with this degree are still in school (transition year)
+                    students_in_school += count * 0.5
+        
+        # Ensure we don't exceed the total number of students
+        students_in_school = min(students_in_school, num_students)
+        
+        # Calculate students who have graduated
+        students_graduated = num_students - students_in_school
+        
+        # Calculate students who are repaying (based on repayment rate)
+        # This gradually increases as more students graduate
+        students_repaying = 0
+        if students_graduated > 0:
+            students_repaying = students_graduated * repayment_rate
+        
+        # Graduated students not repaying
+        students_not_repaying = students_graduated - students_repaying
+        
+        in_school.append(int(students_in_school))
+        graduated.append(int(students_graduated))
+        repaying.append(int(students_repaying))
+        not_repaying_graduated.append(int(students_not_repaying))
+    
+    # Estimate average earnings
+    # Based on the average payment amount and the ISA percentage
+    isa_percentage = results['isa_percentage']
+    isa_threshold = results['isa_threshold']
+    
+    # Calculate average earnings for different groups
+    avg_earnings_graduated = []
+    avg_earnings_repaying = []
+    avg_repayment_if_repaying = []
+    
+    for year, payment in payment_by_year.items():
+        year_idx = int(year)
+        
+        # Skip years where no one has graduated yet
+        if year_idx < 3 or graduated[year_idx] <= 0:
+            avg_earnings_graduated.append(0)
+            avg_earnings_repaying.append(0)
+            avg_repayment_if_repaying.append(0)
+            continue
+        
+        # For students who have graduated, estimate their average earnings
+        # This is a rough approximation based on typical earnings growth
+        # Use the payment amount to back-calculate the earnings
+        if payment > 0 and repaying[year_idx] > 0:
+            # Average payment per repaying student
+            payment_per_student = payment / repaying[year_idx]
+            
+            # Back-calculate earnings from payment (Payment = ISA% * (Earnings - Threshold))
+            estimated_earnings_repaying = (payment_per_student / isa_percentage) + isa_threshold
+            
+            # Set average repayment for those who are repaying
+            avg_repayment_if_repaying.append(payment_per_student)
+            
+            # For graduated students (both repaying and not repaying)
+            # We estimate lower earnings for those not repaying
+            estimated_earnings_graduated = (estimated_earnings_repaying * repaying[year_idx] + 
+                                          isa_threshold * 0.9 * not_repaying_graduated[year_idx]) / graduated[year_idx]
+            
+            avg_earnings_graduated.append(estimated_earnings_graduated)
+            avg_earnings_repaying.append(estimated_earnings_repaying)
+        else:
+            avg_earnings_graduated.append(0)
+            avg_earnings_repaying.append(0)
+            avg_repayment_if_repaying.append(0)
+    
+    # Convert to DataFrame for the table
+    payment_df = pd.DataFrame({
+        'Year': payment_by_year.index.astype(int),
+        'Students in School': in_school,
+        'Students Repaying': repaying,
+        'Graduated Not Repaying': not_repaying_graduated,
+        'Avg Earnings (Graduated)': [int(x) for x in avg_earnings_graduated],
+        'Avg Earnings (Repaying)': [int(x) for x in avg_earnings_repaying],
+        'Avg Repayment (Repaying)': [int(x) for x in avg_repayment_if_repaying],
+        'Average Payment ($)': payment_by_year.values.round(2)
+    })
+    
+    # Create the data table
+    table = dash_table.DataTable(
+        data=payment_df.to_dict('records'),
+        columns=[
+            {'name': 'Year', 'id': 'Year', 'type': 'numeric'},
+            {'name': 'Students in School', 'id': 'Students in School', 'type': 'numeric'},
+            {'name': 'Students Repaying', 'id': 'Students Repaying', 'type': 'numeric'},
+            {'name': 'Graduated Not Repaying', 'id': 'Graduated Not Repaying', 'type': 'numeric'},
+            {'name': 'Avg Earnings (Graduated) ($)', 'id': 'Avg Earnings (Graduated)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
+            {'name': 'Avg Earnings (Repaying) ($)', 'id': 'Avg Earnings (Repaying)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
+            {'name': 'Avg Repayment (Repaying) ($)', 'id': 'Avg Repayment (Repaying)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
+            {'name': 'Total Payment ($)', 'id': 'Average Payment ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
+        ],
+        style_table={'overflowX': 'auto'},
+        style_cell={'textAlign': 'center', 'padding': '10px'},
+        style_header={
+            'backgroundColor': 'rgb(230, 230, 230)',
+            'fontWeight': 'bold'
+        },
+        style_data_conditional=[
+            {
+                'if': {'row_index': 'odd'},
+                'backgroundColor': 'rgb(248, 248, 248)'
+            }
+        ],
+        sort_action='native',
+        filter_action='native',
+        page_size=25,  # Show all years without pagination
+    )
+    
+    return html.Div([
+        html.H4(f"{results['program_type']} Program - Detailed Payment & Student Data", style={'textAlign': 'center', 'marginBottom': '20px'}),
+        html.Div([
+            html.P(f"Total Investment: ${results['total_investment']:,.2f}", style={'fontWeight': 'bold'}),
+            html.P(f"Average Total Payment: ${results['average_total_payment']:,.2f}", style={'fontWeight': 'bold'}),
+            html.P(f"Average Duration: {results['average_duration']:.2f} years", style={'fontWeight': 'bold'}),
+            html.P(f"Annual Employment Rate: {results['employment_rate']*100:.1f}%", style={'fontWeight': 'bold'}),
+            html.P(f"Students Making Payments: {results['repayment_rate']*100:.1f}%", style={'fontWeight': 'bold'})
+        ], style={'marginBottom': '20px', 'textAlign': 'center'}),
+        table
+    ])
 
 # Run the app
 if __name__ == "__main__":

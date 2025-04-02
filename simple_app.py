@@ -230,17 +230,6 @@ app.layout = html.Div([
                     ], style={'paddingLeft': '30px'})
                 ], style={'marginBottom': '30px'}),
                 
-                # Key Features Section
-                html.Div([
-                    html.H2("Key Features", style={'color': '#2c3e50', 'borderBottom': '1px solid #eee', 'paddingBottom': '10px'}),
-                    html.Ul([
-                        html.Li([html.Strong("Program-Specific Simulations:"), " Model distinct ISA outcomes for university degrees, nursing qualifications, assistant training, and trade education pathways."], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginBottom': '10px'}),
-                        html.Li([html.Strong("Scenario Analysis:"), " Utilize baseline, conservative, and optimistic scenarios to evaluate a wide range of potential outcomes based on enrollment distributions and graduation rates."], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginBottom': '10px'}),
-                        html.Li([html.Strong("Degree and Earnings Customization:"), " Adjust proportions across bachelor's, master's, assistant, and trade programs, each with detailed earnings profiles and growth projections reflecting real-world data."], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginBottom': '10px'}),
-                        html.Li([html.Strong("Economic Realism:"), " Incorporate key economic factors such as inflation, unemployment, immigrant wage penalties, and realistic salary progression based on experience."], style={'fontSize': '16px', 'lineHeight': '1.6', 'marginBottom': '10px'}),
-                        html.Li([html.Strong("ISA Terms and Payment Modeling:"), " Clearly defined repayment terms, including ISA caps and income thresholds, ensure transparent financial interactions between students and investors."], style={'fontSize': '16px', 'lineHeight': '1.6'})
-                    ], style={'paddingLeft': '30px'})
-                ], style={'marginBottom': '30px'}),
                 
                 # Model Parameters Section
                 html.Div([
@@ -3137,4 +3126,4 @@ def update_irr_comparison(results):
 # Run the app
 if __name__ == "__main__":
     # Use this for local development
-    app.run_server(debug=False, host='0.0.0.0', port=10000) 
+    app.run(debug=False, host='0.0.0.0', port=10000) 

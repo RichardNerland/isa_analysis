@@ -498,7 +498,7 @@ def run_simple_simulation(
     elif program_type == 'Kenya':
         price_per_student = 16650
     elif program_type == 'Rwanda':
-        price_per_student = 15000  
+        price_per_student = 16650  
     else:
         raise ValueError("Program type must be 'Uganda', 'Kenya', or 'Rwanda'")
     

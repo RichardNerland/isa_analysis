@@ -263,10 +263,6 @@ def simulate_simple(
             else:
                 # Reduce experience for unemployed students
                 student.years_experience = max(0, student.years_experience - 3)
-                
-                # Stop Malengo fees if student is unemployed after graduation (except NA degrees)
-                if student_graduated[student_idx] and not student_is_na[student_idx]:
-                    student_hit_cap[student_idx] = True
             
             # Update active status based on payment history and graduation
             if student.is_graduated and not student.hit_cap and not student_is_na[student_idx]:

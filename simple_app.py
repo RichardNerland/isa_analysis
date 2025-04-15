@@ -1443,6 +1443,7 @@ def run_simulation(n_clicks, degree_dist_type, preset_scenario, ba_pct, ma_pct, 
             'payment_by_year': results['payment_by_year'].to_dict(),
             'investor_payment_by_year': results['investor_payment_by_year'].to_dict(),
             'malengo_payment_by_year': results['malengo_payment_by_year'].to_dict(),
+            'active_students_by_year': results['active_students_by_year'].to_dict(),
             'payment_quantiles': results['payment_quantiles'],
             'investor_payment_quantiles': results.get('investor_payment_quantiles', {}),
             'employment_rate': results['employment_rate'],
@@ -2733,20 +2734,7 @@ def update_payment_data_table(results):
     # Convert stored dict back to pandas Series
     payment_by_year = pd.Series(results['payment_by_year'])
     malengo_payment_by_year = pd.Series(results['malengo_payment_by_year'])
-    
-    # Handle active students data - try different possible keys and formats
-    active_students_data = None
-    for key in ['Active_Students_Count', 'active_students_by_year', 'active_students']:
-        if key in results:
-            active_students_data = results[key]
-            break
-    
-    if active_students_data is None:
-        # If no active students data found, create zeros array
-        active_students_by_year = pd.Series(np.zeros(len(payment_by_year)))
-    else:
-        # Convert to pandas Series if it isn't already
-        active_students_by_year = pd.Series(active_students_data)
+    active_students_data = pd.Series(results['active_students_by_year'])
     
     # Get the number of years from payment data
     num_years = len(payment_by_year)
@@ -2754,21 +2742,13 @@ def update_payment_data_table(results):
     # Create the DataFrame with only the data we have from results
     payment_df = pd.DataFrame({
         'Year': range(num_years),
-        'Active Students': [int(round(active_students_by_year.iloc[i])) if i < len(active_students_by_year) else 0 
-                          for i in range(num_years)],
+        'Active Students': [active_students_data.iloc[i] if i < len(active_students_data) else 0 
+                            for i in range(num_years)],
         'Total Payment ($)': [payment_by_year.iloc[i] if i < len(payment_by_year) else 0 
                             for i in range(num_years)],
         'Malengo Fee ($)': [malengo_payment_by_year.iloc[i] if i < len(malengo_payment_by_year) else 0 
                            for i in range(num_years)]
     })
-    
-    # Add average payment per active student, handling division by zero
-    payment_df['Avg Payment per Active ($)'] = [
-        round(payment_by_year.iloc[i] / active_students_by_year.iloc[i])
-        if i < len(payment_by_year) and i < len(active_students_by_year) and active_students_by_year.iloc[i] > 0
-        else 0
-        for i in range(num_years)
-    ]
     
     # Create the DataTable
     table = dash_table.DataTable(
@@ -2777,8 +2757,7 @@ def update_payment_data_table(results):
             {'name': 'Year', 'id': 'Year', 'type': 'numeric'},
             {'name': 'Active Students', 'id': 'Active Students', 'type': 'numeric'},
             {'name': 'Total Payment ($)', 'id': 'Total Payment ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Malengo Fee ($)', 'id': 'Malengo Fee ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Avg Payment per Active ($)', 'id': 'Avg Payment per Active ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
+            {'name': 'Malengo Fee ($)', 'id': 'Malengo Fee ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
         ],
         style_table={'overflowX': 'auto'},
         style_cell={'textAlign': 'center', 'padding': '10px'},
@@ -2807,9 +2786,7 @@ def update_payment_data_table(results):
         html.Div([
             html.P(f"Total Investment: ${results['total_investment']:,.2f}", style={'fontWeight': 'bold'}),
             html.P(f"Average Total Payment: ${results.get('average_nominal_total_payment', results.get('average_total_payment', 0)):,.2f}", style={'fontWeight': 'bold'}),
-            html.P(f"Average Duration: {results['average_duration']:.2f} years", style={'fontWeight': 'bold'}),
-            html.P(f"Average Active Students: {avg_active_students:.1f} ({active_students_pct*100:.1f}%)", style={'fontWeight': 'bold'}),
-            html.P(f"Estimated Annual Malengo Revenue: ${annual_malengo_revenue:.2f}", style={'fontWeight': 'bold'})
+            html.P(f"Average Duration: {results['average_duration']:.2f} years", style={'fontWeight': 'bold'})
         ], style={'marginBottom': '20px', 'textAlign': 'center'}),
         html.P("Active Students are graduates who have made a payment within the last 3 years or graduated recently, have not hit caps, and are not NA degree holders.",
               style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'textAlign': 'center'}),

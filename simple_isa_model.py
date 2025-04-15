@@ -1072,7 +1072,7 @@ def run_simple_simulation(
         )
         
         # Assign degrees to each student
-        students = _create_students(num_students, degrees, probs, num_years)
+        students = _create_students(num_students, degrees, probs, num_years, apply_graduation_delay)
         
         # Run the simulation and store results
         sim_results = simulate_simple(
@@ -1528,7 +1528,8 @@ def _create_students(
     num_students: int, 
     degrees: List[Degree], 
     probs: List[float], 
-    num_years: int
+    num_years: int,
+    apply_graduation_delay: bool = False
 ) -> List[Student]:
     """Helper function to create and assign degrees to students."""
     # Assign degrees to each student
@@ -1538,7 +1539,14 @@ def _create_students(
     # Create student objects
     students = []
     for i in range(num_students):
-        students.append(Student(degree_labels[i], num_years))
+        student = Student(degree_labels[i], num_years)
+        if apply_graduation_delay:
+            # Apply graduation delay based on degree type
+            student.graduation_year = _calculate_graduation_delay(
+                student.degree.years_to_complete,
+                student.degree.name
+            )
+        students.append(student)
     
     return students
 

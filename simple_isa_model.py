@@ -76,11 +76,14 @@ class Student:
         self.is_graduated = False
         self.is_employed = False
         self.is_home = False
+        self.is_active = False  # New flag to track active status
         self.years_paid = 0
         self.hit_cap = False
         self.cap_value_when_hit = 0.0  # Store the actual cap value when the student hits it
         self.years_experience = 0
         self.graduation_year = degree.years_to_complete
+        self.limit_years = num_years
+        self.last_payment_year = -1  # Track the last year a payment was made
 
 
 class Degree:
@@ -167,30 +170,20 @@ def simulate_simple(
     num_years: int, 
     isa_percentage: float, 
     limit_years: int, 
-    performance_fee_pct: float = 0.15, 
+    performance_fee_pct: float = 0.025,  # 2.5% performance fee on repayments
     gamma: bool = False, 
     price_per_student: float = 30000, 
     new_malengo_fee: bool = False,
+    annual_fee_per_student: float = 300,  # $300 base annual fee per active student
     apply_graduation_delay: bool = False
 ) -> Dict[str, Any]:
     """
     Run a single simulation for the given students over the specified number of years
     with a simple repayment structure.
     
-    Parameters:
-        students: List of Student objects
-        year: Year object representing economic conditions
-        num_years: Total number of years to simulate
-        isa_percentage: Percentage of income to pay in ISA (as decimal, e.g., 0.14 for 14%)
-        limit_years: Maximum number of years to pay the ISA
-        performance_fee_pct: Percentage of payments that goes to Malengo (if using old structure)
-        gamma: Whether to use gamma distribution instead of normal for earnings
-        price_per_student: Cost per student (for new Malengo fee structure)
-        new_malengo_fee: Whether to use the new Malengo fee structure (2% of inflation-adjusted investment)
-        apply_graduation_delay: Whether to apply realistic graduation delays
-    
-    Returns:
-        Dictionary of simulation results including student data and payment information
+    The Malengo fee structure consists of:
+    1. Annual fee per active student ($300 base, adjusted for inflation)
+    2. Performance fee (2.5%) on all student repayments
     """
     # Initialize arrays to track payments
     total_payments = np.zeros(num_years)
@@ -200,27 +193,25 @@ def simulate_simple(
     investor_payments = np.zeros(num_years)
     investor_real_payments = np.zeros(num_years)
     
+    # Track active students for each year
+    active_students_count = np.zeros(num_years, dtype=int)
+    
     # Track student status for fee calculations
     student_graduated = np.zeros(len(students), dtype=bool)
     student_hit_cap = np.zeros(len(students), dtype=bool)
     student_is_na = np.zeros(len(students), dtype=bool)
     
-    # Apply graduation delay if requested
-    if apply_graduation_delay:
-        for student in students:
-            # Store the original years to complete
-            base_years = student.degree.years_to_complete
-            # Calculate and apply the delay
-            student.graduation_year = _calculate_graduation_delay(base_years, student.degree.name)
-    else:
-        # Without delay, graduation year is just the degree completion time
-        for student in students:
-            student.graduation_year = student.degree.years_to_complete
+    # Store the limit_years in each student object
+    for student in students:
+        student.limit_years = limit_years
     
     # Simulation loop
     for i in range(num_years):
         # Process each student
         for student_idx, student in enumerate(students):
+            # Reset active status at start of year
+            student.is_active = False
+            
             # Skip if student hasn't completed degree yet
             if i < student.graduation_year:
                 continue
@@ -260,10 +251,11 @@ def simulate_simple(
                         student.real_payments[i] = student.payments[i] / year.deflator
                         student.hit_cap = True
                         student_hit_cap[student_idx] = True
-                        student.cap_value_when_hit = year.isa_cap  # Save the cap value at the time it's hit
+                        student.cap_value_when_hit = year.isa_cap
                     else:
                         student.payments[i] = potential_payment
                         student.real_payments[i] = potential_payment / year.deflator
+                        student.last_payment_year = i
                     
                     # Add to total payments
                     total_payments[i] += student.payments[i]
@@ -275,24 +267,33 @@ def simulate_simple(
                 # Stop Malengo fees if student is unemployed after graduation (except NA degrees)
                 if student_graduated[student_idx] and not student_is_na[student_idx]:
                     student_hit_cap[student_idx] = True
-        
-        # Calculate Malengo's fee for the new structure
-        if new_malengo_fee:
-            _calculate_malengo_fees(
-                students, student_idx, student_graduated, student_hit_cap, 
-                student_is_na, price_per_student, year, i, 
-                malengo_payments, malengo_real_payments
-            )
             
-            # Calculate investor payments
-            investor_payments[i] = total_payments[i] - malengo_payments[i]
-            investor_real_payments[i] = total_real_payments[i] - malengo_real_payments[i]
-        else:
-            # Old fee structure: Malengo gets a percentage of all payments
-            malengo_payments[i] = total_payments[i] * performance_fee_pct
-            malengo_real_payments[i] = total_real_payments[i] * performance_fee_pct
-            investor_payments[i] = total_payments[i] - malengo_payments[i]
-            investor_real_payments[i] = total_real_payments[i] - malengo_real_payments[i]
+            # Update active status based on payment history and graduation
+            if student.is_graduated and not student.hit_cap and not student_is_na[student_idx]:
+                # Student is active if they made a payment in the last 3 years or graduated recently
+                recent_payment = (i - student.last_payment_year <= 3) if student.last_payment_year >= 0 else False
+                recent_graduate = (i - student.graduation_year <= 3) if student.is_graduated else False
+                student.is_active = recent_payment or recent_graduate
+        
+        # Count active students for this year
+        active_students_count[i] = sum(1 for student in students if student.is_active)
+        
+        # Calculate Malengo's fees using new structure:
+        # 1. Annual fee per active student (adjusted for inflation)
+        # 2. Performance fee on all repayments
+        annual_fee_inflated = annual_fee_per_student * year.deflator  # Adjust annual fee for inflation
+        active_student_fees = active_students_count[i] * annual_fee_inflated
+        performance_fees = total_payments[i] * performance_fee_pct
+        
+        # Total Malengo fees (nominal)
+        malengo_payments[i] = active_student_fees + performance_fees
+        
+        # Real (inflation-adjusted) Malengo fees
+        malengo_real_payments[i] = (active_student_fees + performance_fees) / year.deflator
+        
+        # Calculate investor payments (total payments minus Malengo fees)
+        investor_payments[i] = total_payments[i] - malengo_payments[i]
+        investor_real_payments[i] = total_real_payments[i] - malengo_real_payments[i]
 
         # Advance to next year
         year.next_year()
@@ -309,7 +310,8 @@ def simulate_simple(
         'Malengo_Payments': malengo_payments,
         'Malengo_Real_Payments': malengo_real_payments,
         'Investor_Payments': investor_payments,
-        'Investor_Real_Payments': investor_real_payments
+        'Investor_Real_Payments': investor_real_payments,
+        'Active_Students_Count': active_students_count
     }
 
     return data
@@ -361,334 +363,66 @@ def _calculate_malengo_fees(
     year: Year, 
     current_year: int,
     malengo_payments: np.ndarray, 
-    malengo_real_payments: np.ndarray
-) -> None:
-    """Helper function to calculate Malengo's fees under the new structure."""
-    for student_idx, student in enumerate(students):
-        # Malengo gets 2% of inflation-adjusted initial investment only if:
-        # 1. Student has graduated
-        # 2. Student has not hit any cap (payment cap, years cap, or stopped payments)
-        # 3. Student does not have an NA degree
-        if (student_graduated[student_idx] and 
-            not student_hit_cap[student_idx] and
-            not student_is_na[student_idx] and
-            student.is_employed):  # Only apply fee if student is employed
-            annual_fee = price_per_student * 0.02 * year.deflator
-            malengo_payments[current_year] += annual_fee
-            malengo_real_payments[current_year] += annual_fee / year.deflator
-
-
-def run_simple_simulation(
-    program_type: str,
-    num_students: int,
-    num_sims: int,
-    scenario: str = 'baseline',
-    salary_adjustment_pct: float = 0,
-    salary_std_adjustment_pct: float = 0,
-    initial_unemployment_rate: float = 0.08,
-    initial_inflation_rate: float = 0.02,
-    performance_fee_pct: float = 0.15,
-    leave_labor_force_probability: float = 0.05,
-    ba_pct: float = 0,
-    ma_pct: float = 0, 
-    asst_pct: float = 0,
-    nurse_pct: float = 0,
-    na_pct: float = 0,
-    trade_pct: float = 0,  
-    asst_shift_pct: float = 0,
-    # Degree parameters
-    ba_salary: float = 41300,
-    ba_std: float = 6000,
-    ba_growth: float = 0.03,  # Growth rate in decimal form (e.g., 0.03 = 3% growth)
-    ma_salary: float = 46709,
-    ma_std: float = 6600,
-    ma_growth: float = 0.04,  # Growth rate in decimal form (e.g., 0.04 = 4% growth)
-    asst_salary: float = 31500,
-    asst_std: float = 2800,
-    asst_growth: float = 0.005,  # Growth rate in decimal form (e.g., 0.005 = 0.5% growth)
-    nurse_salary: float = 40000,
-    nurse_std: float = 4000,
-    nurse_growth: float = 0.02,  # Growth rate in decimal form (e.g., 0.02 = 2% growth)
-    na_salary: float = 2200,
-    na_std: float = 640,
-    na_growth: float = 0.01,  # Growth rate in decimal form (e.g., 0.01 = 1% growth)
-    trade_salary: float = 35000,  
-    trade_std: float = 3000,      
-    trade_growth: float = 0.02,   # Growth rate in decimal form (e.g., 0.02 = 2% growth)
-    asst_shift_salary: float = None,
-    asst_shift_std: float = None,
-    asst_shift_growth: float = None,
-    # ISA parameters
-    isa_percentage: Optional[float] = None,
-    isa_threshold: float = 27000,
-    isa_cap: Optional[float] = None,
-    new_malengo_fee: bool = True,
-    # Additional parameters
-    random_seed: Optional[int] = None,
-    num_years: int = 25,
-    limit_years: int = 10,
-    apply_graduation_delay: bool = False
-) -> Dict[str, Any]:
+    malengo_real_payments: np.ndarray,
+    annual_fee_per_student: float = 300,
+    last_payment_year: List[int] = None
+) -> int:
     """
-    Run multiple simulations for Uganda, Kenya, or Rwanda program with simplified parameters.
+    Helper function to calculate Malengo's fees under the new structure.
     
-    Parameters:
-        program_type: 'Uganda', 'Kenya', or 'Rwanda'
-        num_students: Number of students to simulate
-        num_sims: Number of simulations to run
-        scenario: Predefined scenario to use ('baseline', 'conservative', 'optimistic', or 'custom')
-        salary_adjustment_pct: Percentage adjustment to average salaries (legacy parameter)
-        salary_std_adjustment_pct: Percentage adjustment to salary standard deviations (legacy parameter)
-        initial_unemployment_rate: Starting unemployment rate (decimal form, e.g., 0.08 = 8%)
-        initial_inflation_rate: Starting inflation rate (decimal form, e.g., 0.02 = 2%)
-        performance_fee_pct: Percentage of payments that goes to Malengo (old fee structure)
-        leave_labor_force_probability: Probability of a student leaving the labor force after graduation
-        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct, asst_shift_pct: Custom degree distribution (if scenario='custom')
-        ba_salary, ba_std, ba_growth: Custom parameters for BA degree (growth in decimal form)
-        ma_salary, ma_std, ma_growth: Custom parameters for MA degree (growth in decimal form)
-        asst_salary, asst_std, asst_growth: Custom parameters for Assistant degree (growth in decimal form)
-        nurse_salary, nurse_std, nurse_growth: Custom parameters for Nurse degree (growth in decimal form)
-        na_salary, na_std, na_growth: Custom parameters for NA degree (growth in decimal form)
-        trade_salary, trade_std, trade_growth: Custom parameters for Trade degree (growth in decimal form)
-        asst_shift_salary, asst_shift_std, asst_shift_growth: Custom parameters for ASST_SHIFT degree (defaults to ASST values)
-        isa_percentage: Custom ISA percentage (defaults based on program type)
-        isa_threshold: Custom ISA threshold
-        isa_cap: Custom ISA cap (defaults based on program type)
-        new_malengo_fee: Whether to use the new Malengo fee structure
-        random_seed: Optional seed for random number generation
-        num_years: Total number of years to simulate
-        limit_years: Maximum number of years to pay the ISA
-        apply_graduation_delay: Whether to apply realistic graduation delays
-    
+    Args:
+        students: List of all students
+        student_idx: Current student index
+        student_graduated: Boolean array indicating if each student has graduated
+        student_hit_cap: Boolean array indicating if each student has hit a payment cap
+        student_is_na: Boolean array indicating if each student has an NA degree
+        price_per_student: Cost per student
+        year: Current Year object
+        current_year: Current year index
+        malengo_payments: Array to store Malengo payments
+        malengo_real_payments: Array to store real Malengo payments
+        annual_fee_per_student: Annual fee charged per active student (default: $300)
+        last_payment_year: List tracking the last year each student made a payment
+        
     Returns:
-        Dictionary of aggregated results from multiple simulations
-    
-    Note:
-        All growth rates should be provided in decimal form (e.g., 0.03 for 3% growth)
-        rather than as percentages.
+        Number of active students in the current year
     """
-    # Set random seed if provided
-    if random_seed is not None:
-        np.random.seed(random_seed)
+    # Initialize last_payment_year if None
+    if last_payment_year is None:
+        last_payment_year = [-1] * len(students)
     
-    # Set default ISA parameters based on program type if not provided
-    if isa_percentage is None:
-        if program_type == 'Uganda':
-            isa_percentage = 0.14
-        elif program_type == 'Kenya':
-            isa_percentage = 0.12
-        elif program_type == 'Rwanda':
-            isa_percentage = 0.12  
-        else:
-            isa_percentage = 0.12  # Default
+    # Count active students
+    active_student_count = 0
     
-    if isa_cap is None:
-        if program_type == 'Uganda':
-            isa_cap = 72500
-        elif program_type == 'Kenya':
-            isa_cap = 49950
-        elif program_type == 'Rwanda':
-            isa_cap = 45000  
-        else:
-            isa_cap = 50000  # Default
-    
-    # Program-specific parameters
-    if program_type == 'Uganda':
-        price_per_student = 29000
-    elif program_type == 'Kenya':
-        price_per_student = 16650
-    elif program_type == 'Rwanda':
-        price_per_student = 16650  
-    else:
-        raise ValueError("Program type must be 'Uganda', 'Kenya', or 'Rwanda'")
-    
-    # Set default values for asst_shift if not provided
-    if asst_shift_salary is None:
-        asst_shift_salary = asst_salary
-    if asst_shift_std is None:
-        asst_shift_std = asst_std
-    if asst_shift_growth is None:
-        asst_shift_growth = asst_growth
-    
-    # Define all possible degree types with custom parameters
-    base_degrees = _create_degree_definitions(
-        ba_salary, ba_std, ba_growth,
-        ma_salary, ma_std, ma_growth,
-        asst_salary, asst_std, asst_growth,
-        nurse_salary, nurse_std, nurse_growth,
-        na_salary, na_std, na_growth,
-        trade_salary, trade_std, trade_growth,
-        asst_shift_salary, asst_shift_std, asst_shift_growth
-    )
-    
-    # Set up degree distribution based on scenario
-    degrees, probs = _setup_degree_distribution(
-        scenario, program_type, base_degrees, leave_labor_force_probability,
-        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct, asst_shift_pct
-    )
-    
-    # Prepare containers for results
-    total_payment = {}
-    investor_payment = {}
-    malengo_payment = {}
-    
-    # Add containers for nominal (non-inflation-adjusted) payments
-    nominal_total_payment = {}
-    nominal_investor_payment = {}
-    nominal_malengo_payment = {}
-    
-    df_list = []
-    
-    # Track statistics across simulations
-    employment_stats = []
-    ever_employed_stats = []  # Add this line to track ever employed rates
-    repayment_stats = []
-    cap_stats = []
-    
-    # Calculate total investment
-    total_investment = num_students * price_per_student
-    
-    # Run multiple simulations
-    for trial in range(num_sims):
-        # Initialize year class with a unique seed for each trial if random_seed is provided
-        trial_seed = random_seed + trial if random_seed is not None else None
-        year = Year(
-            initial_inflation_rate=initial_inflation_rate,
-            initial_unemployment_rate=initial_unemployment_rate,
-            initial_isa_cap=isa_cap,
-            initial_isa_threshold=isa_threshold,
-            num_years=num_years
-        )
+    for student_idx, student in enumerate(students):
+        # Update last payment year if student made a payment in this year
+        if student.payments[current_year] > 0:
+            last_payment_year[student_idx] = current_year
+            
+        # Check if the student is active
+        # A student is active if:
+        # 1. They have graduated
+        # 2. They made a payment in the last 3 years OR graduated within the last 3 years
+        # 3. They have not hit a payment cap
+        # 4. They have not hit a years cap
+        # 5. They do not have an NA degree (high income country)
         
-        # Assign degrees to each student
-        students = _create_students(num_students, degrees, probs, num_years)
+        is_recent_payment = (current_year - last_payment_year[student_idx] <= 3) if last_payment_year[student_idx] >= 0 else False
+        is_recent_graduate = (current_year - student.graduation_year <= 3) if student.is_graduated else False
         
-        # Run the simulation and store results
-        sim_results = simulate_simple(
-            students=students,
-            year=year,
-            num_years=num_years,
-            limit_years=limit_years,
-            isa_percentage=isa_percentage,
-            performance_fee_pct=performance_fee_pct,
-            gamma=False,
-            price_per_student=price_per_student,
-            new_malengo_fee=new_malengo_fee,
-            apply_graduation_delay=apply_graduation_delay
-        )
-        df_list.append(sim_results)
-        
-        # Calculate and store statistics for this simulation
-        stats = _calculate_simulation_statistics(
-            students, num_students, num_years, limit_years
-        )
-        
-        employment_stats.append(stats['employment_rate'])
-        ever_employed_stats.append(stats['ever_employed_rate'])  # Add this line to collect ever employed rates
-        repayment_stats.append(stats['repayment_rate'])
-        cap_stats.append(stats['cap_stats'])
-        
-        # Extract and store real payments (inflation-adjusted)
-        total_payment[trial] = np.sum(pd.DataFrame([student.real_payments for student in students]), axis=0)
-        investor_payment[trial] = df_list[trial]['Investor_Real_Payments']
-        malengo_payment[trial] = df_list[trial]['Malengo_Real_Payments']
-        
-        # Extract and store nominal payments (not adjusted for inflation)
-        nominal_total_payment[trial] = np.sum(pd.DataFrame([student.payments for student in students]), axis=0)
-        nominal_investor_payment[trial] = df_list[trial]['Investor_Payments']
-        nominal_malengo_payment[trial] = df_list[trial]['Malengo_Payments']
+        if (student_graduated[student_idx] and 
+            (is_recent_payment or is_recent_graduate) and
+            not student_hit_cap[student_idx] and
+            student.years_paid < student.limit_years and  # Check for years cap
+            not student_is_na[student_idx]):
+            
+            # Student is active, count them and apply fee
+            active_student_count += 1
+            fee = annual_fee_per_student * year.deflator
+            malengo_payments[current_year] += fee
+            malengo_real_payments[current_year] += fee / year.deflator
     
-    # Calculate summary statistics
-    summary_stats = _calculate_summary_statistics(
-        total_payment, investor_payment, malengo_payment,
-        nominal_total_payment, nominal_investor_payment, nominal_malengo_payment,
-        total_investment, degrees, probs, num_students,
-        employment_stats, ever_employed_stats, repayment_stats, cap_stats
-    )
-    
-    # Add simulation parameters to results
-    summary_stats.update({
-        'program_type': program_type,
-        'total_investment': total_investment,
-        'price_per_student': price_per_student,
-        'isa_percentage': isa_percentage,
-        'isa_threshold': isa_threshold,
-        'isa_cap': isa_cap,
-        'performance_fee_pct': performance_fee_pct,
-        'leave_labor_force_probability': leave_labor_force_probability,
-        'custom_degrees': True
-    })
-    
-    return summary_stats
-
-
-def _create_degree_definitions(
-    ba_salary: float, ba_std: float, ba_growth: float,
-    ma_salary: float, ma_std: float, ma_growth: float,
-    asst_salary: float, asst_std: float, asst_growth: float,
-    nurse_salary: float, nurse_std: float, nurse_growth: float,
-    na_salary: float, na_std: float, na_growth: float,
-    trade_salary: float, trade_std: float, trade_growth: float,
-    asst_shift_salary: float, asst_shift_std: float, asst_shift_growth: float
-) -> Dict[str, Dict[str, Any]]:
-    """
-    Helper function to create degree definitions.
-    
-    Note:
-        All growth rates should be provided in decimal form (e.g., 0.03 for 3% growth)
-        and will be used directly without further conversion.
-    """
-    return {
-        'BA': {
-            'name': 'BA',
-            'mean_earnings': ba_salary,
-            'stdev': ba_std,
-            'experience_growth': ba_growth,  # Growth rate already in decimal form
-            'years_to_complete': 4
-        },
-        'MA': {
-            'name': 'MA',
-            'mean_earnings': ma_salary,
-            'stdev': ma_std,
-            'experience_growth': ma_growth,  # Growth rate already in decimal form
-            'years_to_complete': 6
-        },
-        'ASST': {
-            'name': 'ASST',
-            'mean_earnings': asst_salary,
-            'stdev': asst_std,
-            'experience_growth': asst_growth,  # Growth rate already in decimal form
-            'years_to_complete': 3
-        },
-        'ASST_SHIFT': {
-            'name': 'ASST_SHIFT',
-            'mean_earnings': asst_shift_salary,
-            'stdev': asst_shift_std,
-            'experience_growth': asst_shift_growth,  # Growth rate already in decimal form
-            'years_to_complete': 6
-        },
-        'NURSE': {
-            'name': 'NURSE',
-            'mean_earnings': nurse_salary,
-            'stdev': nurse_std,
-            'experience_growth': nurse_growth,  # Growth rate already in decimal form
-            'years_to_complete': 4
-        },
-        'NA': {
-            'name': 'NA',
-            'mean_earnings': na_salary,
-            'stdev': na_std,
-            'experience_growth': na_growth,  # Growth rate already in decimal form
-            'years_to_complete': 4
-        },
-        'TRADE': {
-            'name': 'TRADE',
-            'mean_earnings': trade_salary,
-            'stdev': trade_std,
-            'experience_growth': trade_growth,  # Growth rate already in decimal form
-            'years_to_complete': 3
-        }
-    }
+    return active_student_count
 
 
 def _setup_degree_distribution(
@@ -1154,23 +888,472 @@ def _setup_degree_distribution(
     return degrees, probs
 
 
-def _create_students(
-    num_students: int, 
-    degrees: List[Degree], 
-    probs: List[float], 
-    num_years: int
-) -> List[Student]:
-    """Helper function to create and assign degrees to students."""
-    # Assign degrees to each student
-    test_array = np.array([np.random.multinomial(1, probs) for _ in range(num_students)])
-    degree_labels = np.array(degrees)[test_array.argmax(axis=1)]
+def run_simple_simulation(
+    program_type: str,
+    num_students: int,
+    num_sims: int,
+    scenario: str = 'baseline',
+    salary_adjustment_pct: float = 0,
+    salary_std_adjustment_pct: float = 0,
+    initial_unemployment_rate: float = 0.08,
+    initial_inflation_rate: float = 0.02,
+    performance_fee_pct: float = 0.025,
+    leave_labor_force_probability: float = 0.05,
+    ba_pct: float = 0,
+    ma_pct: float = 0, 
+    asst_pct: float = 0,
+    nurse_pct: float = 0,
+    na_pct: float = 0,
+    trade_pct: float = 0,  
+    asst_shift_pct: float = 0,
+    # Degree parameters
+    ba_salary: float = 41300,
+    ba_std: float = 6000,
+    ba_growth: float = 0.03,  # Growth rate in decimal form (e.g., 0.03 = 3% growth)
+    ma_salary: float = 46709,
+    ma_std: float = 6600,
+    ma_growth: float = 0.04,  # Growth rate in decimal form (e.g., 0.04 = 4% growth)
+    asst_salary: float = 31500,
+    asst_std: float = 2800,
+    asst_growth: float = 0.005,  # Growth rate in decimal form (e.g., 0.005 = 0.5% growth)
+    nurse_salary: float = 40000,
+    nurse_std: float = 4000,
+    nurse_growth: float = 0.02,  # Growth rate in decimal form (e.g., 0.02 = 2% growth)
+    na_salary: float = 2200,
+    na_std: float = 640,
+    na_growth: float = 0.01,  # Growth rate in decimal form (e.g., 0.01 = 1% growth)
+    trade_salary: float = 35000,  
+    trade_std: float = 3000,      
+    trade_growth: float = 0.02,   # Growth rate in decimal form (e.g., 0.02 = 2% growth)
+    asst_shift_salary: float = None,
+    asst_shift_std: float = None,
+    asst_shift_growth: float = None,
+    # ISA parameters
+    isa_percentage: Optional[float] = None,
+    isa_threshold: float = 27000,
+    isa_cap: Optional[float] = None,
+    new_malengo_fee: bool = True,
+    annual_fee_per_student: float = 300,
+    # Additional parameters
+    random_seed: Optional[int] = None,
+    num_years: int = 25,
+    limit_years: int = 10,
+    apply_graduation_delay: bool = False
+) -> Dict[str, Any]:
+    """
+    Run multiple simulations for Uganda, Kenya, or Rwanda program with simplified parameters.
     
-    # Create student objects
-    students = []
-    for i in range(num_students):
-        students.append(Student(degree_labels[i], num_years))
+    Parameters:
+        program_type: 'Uganda', 'Kenya', or 'Rwanda'
+        num_students: Number of students to simulate
+        num_sims: Number of simulations to run
+        scenario: Predefined scenario to use ('baseline', 'conservative', 'optimistic', or 'custom')
+        salary_adjustment_pct: Percentage adjustment to average salaries (legacy parameter)
+        salary_std_adjustment_pct: Percentage adjustment to salary standard deviations (legacy parameter)
+        initial_unemployment_rate: Starting unemployment rate (decimal form, e.g., 0.08 = 8%)
+        initial_inflation_rate: Starting inflation rate (decimal form, e.g., 0.02 = 2%)
+        performance_fee_pct: Percentage of payments that goes to Malengo half of new fee structure
+        leave_labor_force_probability: Probability of a student leaving the labor force after graduation
+        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct, asst_shift_pct: Custom degree distribution (if scenario='custom')
+        ba_salary, ba_std, ba_growth: Custom parameters for BA degree (growth in decimal form)
+        ma_salary, ma_std, ma_growth: Custom parameters for MA degree (growth in decimal form)
+        asst_salary, asst_std, asst_growth: Custom parameters for Assistant degree (growth in decimal form)
+        nurse_salary, nurse_std, nurse_growth: Custom parameters for Nurse degree (growth in decimal form)
+        na_salary, na_std, na_growth: Custom parameters for NA degree (growth in decimal form)
+        trade_salary, trade_std, trade_growth: Custom parameters for Trade degree (growth in decimal form)
+        asst_shift_salary, asst_shift_std, asst_shift_growth: Custom parameters for ASST_SHIFT degree (defaults to ASST values)
+        isa_percentage: Custom ISA percentage (defaults based on program type)
+        isa_threshold: Custom ISA threshold
+        isa_cap: Custom ISA cap (defaults based on program type)
+        new_malengo_fee: Whether to use the new Malengo fee structure
+        annual_fee_per_student: Annual fee charged per active student (for new fee structure)
+        random_seed: Optional seed for random number generation
+        num_years: Total number of years to simulate
+        limit_years: Maximum number of years to pay the ISA
+        apply_graduation_delay: Whether to apply realistic graduation delays
     
-    return students
+    Returns:
+        Dictionary of aggregated results from multiple simulations
+    
+    Note:
+        All growth rates should be provided in decimal form (e.g., 0.03 for 3% growth)
+        rather than as percentages.
+    """
+    # Set random seed if provided
+    if random_seed is not None:
+        np.random.seed(random_seed)
+    
+    # Set default ISA parameters based on program type if not provided
+    if isa_percentage is None:
+        if program_type == 'Uganda':
+            isa_percentage = 0.14
+        elif program_type == 'Kenya':
+            isa_percentage = 0.12
+        elif program_type == 'Rwanda':
+            isa_percentage = 0.12  
+        else:
+            isa_percentage = 0.12  # Default
+    
+    if isa_cap is None:
+        if program_type == 'Uganda':
+            isa_cap = 72500
+        elif program_type == 'Kenya':
+            isa_cap = 49950
+        elif program_type == 'Rwanda':
+            isa_cap = 45000  
+        else:
+            isa_cap = 50000  # Default
+    
+    # Program-specific parameters
+    if program_type == 'Uganda':
+        price_per_student = 29000
+    elif program_type == 'Kenya':
+        price_per_student = 16650
+    elif program_type == 'Rwanda':
+        price_per_student = 16650  
+    else:
+        raise ValueError("Program type must be 'Uganda', 'Kenya', or 'Rwanda'")
+    
+    # Set default values for asst_shift if not provided
+    if asst_shift_salary is None:
+        asst_shift_salary = asst_salary
+    if asst_shift_std is None:
+        asst_shift_std = asst_std
+    if asst_shift_growth is None:
+        asst_shift_growth = asst_growth
+    
+    # Define all possible degree types with custom parameters
+    base_degrees = _create_degree_definitions(
+        ba_salary, ba_std, ba_growth,
+        ma_salary, ma_std, ma_growth,
+        asst_salary, asst_std, asst_growth,
+        nurse_salary, nurse_std, nurse_growth,
+        na_salary, na_std, na_growth,
+        trade_salary, trade_std, trade_growth,
+        asst_shift_salary, asst_shift_std, asst_shift_growth
+    )
+    
+    # Set up degree distribution based on scenario
+    degrees, probs = _setup_degree_distribution(
+        scenario, program_type, base_degrees, leave_labor_force_probability,
+        ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct, asst_shift_pct
+    )
+    
+    # Prepare containers for results
+    total_payment = {}
+    investor_payment = {}
+    malengo_payment = {}
+    
+    # Add containers for nominal (non-inflation-adjusted) payments
+    nominal_total_payment = {}
+    nominal_investor_payment = {}
+    nominal_malengo_payment = {}
+    
+    # Add container for active students count
+    active_students = {}
+    
+    df_list = []
+    
+    # Track statistics across simulations
+    employment_stats = []
+    ever_employed_stats = []  # Add this line to track ever employed rates
+    repayment_stats = []
+    cap_stats = []
+    
+    # Calculate total investment
+    total_investment = num_students * price_per_student
+    
+    # Run multiple simulations
+    for trial in range(num_sims):
+        # Initialize year class with a unique seed for each trial if random_seed is provided
+        trial_seed = random_seed + trial if random_seed is not None else None
+        year = Year(
+            initial_inflation_rate=initial_inflation_rate,
+            initial_unemployment_rate=initial_unemployment_rate,
+            initial_isa_cap=isa_cap,
+            initial_isa_threshold=isa_threshold,
+            num_years=num_years
+        )
+        
+        # Assign degrees to each student
+        students = _create_students(num_students, degrees, probs, num_years)
+        
+        # Run the simulation and store results
+        sim_results = simulate_simple(
+            students=students,
+            year=year,
+            num_years=num_years,
+            limit_years=limit_years,
+            isa_percentage=isa_percentage,
+            performance_fee_pct=performance_fee_pct,
+            gamma=False,
+            price_per_student=price_per_student,
+            new_malengo_fee=new_malengo_fee,
+            annual_fee_per_student=annual_fee_per_student,
+            apply_graduation_delay=apply_graduation_delay
+        )
+        df_list.append(sim_results)
+        
+        # Calculate and store statistics for this simulation
+        stats = _calculate_simulation_statistics(
+            students, num_students, num_years, limit_years
+        )
+        
+        employment_stats.append(stats['employment_rate'])
+        ever_employed_stats.append(stats['ever_employed_rate'])  # Add this line to collect ever employed rates
+        repayment_stats.append(stats['repayment_rate'])
+        cap_stats.append(stats['cap_stats'])
+        
+        # Extract and store real payments (inflation-adjusted)
+        total_payment[trial] = np.sum(pd.DataFrame([student.real_payments for student in students]), axis=0)
+        investor_payment[trial] = df_list[trial]['Investor_Real_Payments']
+        malengo_payment[trial] = df_list[trial]['Malengo_Real_Payments']
+        
+        # Extract and store nominal payments (not adjusted for inflation)
+        nominal_total_payment[trial] = np.sum(pd.DataFrame([student.payments for student in students]), axis=0)
+        nominal_investor_payment[trial] = df_list[trial]['Investor_Payments']
+        nominal_malengo_payment[trial] = df_list[trial]['Malengo_Payments']
+        
+        # Extract and store active students count
+        active_students[trial] = df_list[trial]['Active_Students_Count']
+    
+    # Calculate summary statistics
+    summary_stats = _calculate_summary_statistics(
+        total_payment, investor_payment, malengo_payment,
+        nominal_total_payment, nominal_investor_payment, nominal_malengo_payment,
+        active_students,
+        total_investment, degrees, probs, num_students,
+        employment_stats, ever_employed_stats, repayment_stats, cap_stats,
+        annual_fee_per_student
+    )
+    
+    # Add simulation parameters to results
+    summary_stats.update({
+        'program_type': program_type,
+        'total_investment': total_investment,
+        'price_per_student': price_per_student,
+        'isa_percentage': isa_percentage,
+        'isa_threshold': isa_threshold,
+        'isa_cap': isa_cap,
+        'performance_fee_pct': performance_fee_pct,
+        'annual_fee_per_student': annual_fee_per_student,
+        'leave_labor_force_probability': leave_labor_force_probability,
+        'custom_degrees': True
+    })
+    
+    return summary_stats
+
+
+def _calculate_summary_statistics(
+    total_payment: Dict[int, np.ndarray],
+    investor_payment: Dict[int, np.ndarray],
+    malengo_payment: Dict[int, np.ndarray],
+    nominal_total_payment: Dict[int, np.ndarray],
+    nominal_investor_payment: Dict[int, np.ndarray],
+    nominal_malengo_payment: Dict[int, np.ndarray],
+    active_students: Dict[int, np.ndarray],
+    total_investment: float,
+    degrees: List[Degree],
+    probs: List[float],
+    num_students: int,
+    employment_stats: List[float],
+    ever_employed_stats: List[float],
+    repayment_stats: List[float],
+    cap_stats: List[Dict[str, Any]],
+    annual_fee_per_student: float = 300
+) -> Dict[str, Any]:
+    """Helper function to calculate summary statistics across all simulations."""
+    # Calculate summary statistics for real (inflation-adjusted) payments
+    payments_df = pd.DataFrame(total_payment)
+    average_total_payment = np.sum(payments_df, axis=0).mean()
+    
+    # Calculate weighted average duration (avoiding division by zero)
+    payment_sums = np.sum(payments_df, axis=0)
+    if np.any(payment_sums > 0):
+        # Convert to numpy arrays to avoid pandas indexing issues
+        payments_np = payments_df.to_numpy()
+        payment_sums_np = payment_sums.to_numpy()
+        
+        # Create weights matrix
+        weights = np.zeros_like(payments_np)
+        for i in range(len(payment_sums_np)):
+            if payment_sums_np[i] > 0:
+                weights[:, i] = payments_np[:, i] / payment_sums_np[i]
+        
+        # Calculate weighted average
+        years = np.arange(1, len(payments_df) + 1)
+        weighted_durations = np.sum(years[:, np.newaxis] * weights, axis=0)
+        average_duration = np.mean(weighted_durations)
+    else:
+        average_duration = 0
+    
+    # Calculate real IRR (safely handle negative values)
+    if average_total_payment > 0 and average_duration > 0:
+        IRR = np.log(max(1, average_total_payment) / total_investment) / average_duration
+    else:
+        IRR = -0.1  # Default negative return
+    
+    # Calculate real investor payments
+    investor_payments_df = pd.DataFrame(investor_payment)
+    average_investor_payment = np.sum(investor_payments_df, axis=0).mean()
+    
+    # Calculate real Malengo payments
+    malengo_payments_df = pd.DataFrame(malengo_payment)
+    average_malengo_payment = np.sum(malengo_payments_df, axis=0).mean()
+    
+    # Calculate real investor IRR using total investment as base
+    if average_investor_payment > 0 and average_duration > 0:
+        investor_IRR = np.log(max(1, average_investor_payment) / total_investment) / average_duration
+    else:
+        investor_IRR = -0.1
+    
+    # Calculate active students statistics
+    active_students_df = pd.DataFrame(active_students)
+    active_students_by_year = active_students_df.mean(axis=1)
+    max_active_students = active_students_by_year.max()
+    avg_active_students = active_students_by_year.mean()
+    active_students_pct = avg_active_students / num_students
+    
+    # Calculate annual Malengo revenue from active students
+    annual_malengo_revenue = avg_active_students * annual_fee_per_student
+    total_malengo_revenue = annual_malengo_revenue * len(active_students_by_year)
+    
+    # Calculate real payment quantiles
+    payment_quantiles = {}
+    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
+        quantile_payment = np.sum(payments_df, axis=0).quantile(quantile)
+        if quantile_payment > 0 and average_duration > 0:
+            payment_quantiles[quantile] = np.log(max(1, quantile_payment) / total_investment) / average_duration
+        else:
+            payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))  # Lower default for lower quantiles
+    
+    # Calculate real investor payment quantiles
+    investor_payment_quantiles = {}
+    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
+        investor_quantile_payment = np.sum(investor_payments_df, axis=0).quantile(quantile)
+        if investor_quantile_payment > 0 and average_duration > 0:
+            investor_payment_quantiles[quantile] = np.log(max(1, investor_quantile_payment) / total_investment) / average_duration
+        else:
+            investor_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))  # Lower default for lower quantiles
+    
+    # Prepare real payment data for plotting
+    payment_by_year = payments_df.mean(axis=1)
+    investor_payment_by_year = investor_payments_df.mean(axis=1)
+    malengo_payment_by_year = malengo_payments_df.mean(axis=1)
+    
+    # Calculate average employment and repayment statistics
+    avg_employment_rate = np.mean(employment_stats)
+    avg_ever_employed_rate = np.mean(ever_employed_stats)
+    avg_repayment_rate = np.mean(repayment_stats)
+    
+    # Calculate average cap statistics
+    avg_cap_stats = {
+        'payment_cap_pct': np.mean([s['payment_cap_pct'] for s in cap_stats]),
+        'years_cap_pct': np.mean([s['years_cap_pct'] for s in cap_stats]),
+        'no_cap_pct': np.mean([s['no_cap_pct'] for s in cap_stats]),
+        'avg_cap_value': np.mean([s.get('avg_cap_value', 0) for s in cap_stats])
+    }
+    
+    # Calculate degree counts and percentages
+    degree_counts = {degree.name: probs[i] * num_students for i, degree in enumerate(degrees)}
+    degree_pcts = {degree.name: probs[i] for i, degree in enumerate(degrees)}
+    
+    # Calculate summary statistics for nominal (non-inflation-adjusted) payments
+    nominal_payments_df = pd.DataFrame(nominal_total_payment)
+    avg_nominal_total_payment = np.sum(nominal_payments_df, axis=0).mean()
+    
+    # Calculate nominal investor payments
+    nominal_investor_payments_df = pd.DataFrame(nominal_investor_payment)
+    avg_nominal_investor_payment = np.sum(nominal_investor_payments_df, axis=0).mean()
+    
+    # Calculate nominal Malengo payments
+    nominal_malengo_payments_df = pd.DataFrame(nominal_malengo_payment)
+    avg_nominal_malengo_payment = np.sum(nominal_malengo_payments_df, axis=0).mean()
+    
+    # Calculate nominal IRR values using the same duration as real IRR
+    if avg_nominal_total_payment > 0 and average_duration > 0:
+        nominal_IRR = np.log(max(1, avg_nominal_total_payment) / total_investment) / average_duration
+    else:
+        nominal_IRR = -0.1
+        
+    if avg_nominal_investor_payment > 0 and average_duration > 0:
+        nominal_investor_IRR = np.log(max(1, avg_nominal_investor_payment) / total_investment) / average_duration
+    else:
+        nominal_investor_IRR = -0.1
+    
+    # Calculate nominal payment quantiles
+    nominal_payment_quantiles = {}
+    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
+        nominal_quantile_payment = np.sum(nominal_payments_df, axis=0).quantile(quantile)
+        if nominal_quantile_payment > 0 and average_duration > 0:
+            nominal_payment_quantiles[quantile] = np.log(max(1, nominal_quantile_payment) / total_investment) / average_duration
+        else:
+            nominal_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))
+    
+    # Calculate nominal investor payment quantiles
+    nominal_investor_payment_quantiles = {}
+    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
+        nominal_investor_quantile_payment = np.sum(nominal_investor_payments_df, axis=0).quantile(quantile)
+        if nominal_investor_quantile_payment > 0 and average_duration > 0:
+            nominal_investor_payment_quantiles[quantile] = np.log(max(1, nominal_investor_quantile_payment) / total_investment) / average_duration
+        else:
+            nominal_investor_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))
+    
+    # Prepare nominal payment data for plotting
+    nominal_payment_by_year = nominal_payments_df.mean(axis=1)
+    nominal_investor_payment_by_year = nominal_investor_payments_df.mean(axis=1)
+    nominal_malengo_payment_by_year = nominal_malengo_payments_df.mean(axis=1)
+    
+    return {
+        # Real (inflation-adjusted) IRR values
+        'IRR': IRR,
+        'investor_IRR': investor_IRR,
+        'average_total_payment': average_total_payment,
+        'average_investor_payment': average_investor_payment,
+        'average_malengo_payment': average_malengo_payment,
+        'average_duration': average_duration,
+        'payment_by_year': payment_by_year,
+        'investor_payment_by_year': investor_payment_by_year,
+        'malengo_payment_by_year': malengo_payment_by_year,
+        'payments_df': payments_df,
+        'investor_payments_df': investor_payments_df,
+        'malengo_payments_df': malengo_payments_df,
+        'payment_quantiles': payment_quantiles,
+        'investor_payment_quantiles': investor_payment_quantiles,
+        
+        # Active students statistics
+        'active_students_by_year': active_students_by_year,
+        'max_active_students': max_active_students,
+        'avg_active_students': avg_active_students,
+        'active_students_pct': active_students_pct,
+        'annual_malengo_revenue': annual_malengo_revenue,
+        'total_malengo_revenue': total_malengo_revenue,
+        
+        # Nominal (non inflation-adjusted) IRR values
+        'nominal_IRR': nominal_IRR,
+        'nominal_investor_IRR': nominal_investor_IRR,
+        'average_nominal_total_payment': avg_nominal_total_payment,
+        'average_nominal_investor_payment': avg_nominal_investor_payment,
+        'average_nominal_malengo_payment': avg_nominal_malengo_payment,
+        'nominal_payment_by_year': nominal_payment_by_year,
+        'nominal_investor_payment_by_year': nominal_investor_payment_by_year,
+        'nominal_malengo_payment_by_year': nominal_malengo_payment_by_year,
+        'nominal_payments_df': nominal_payments_df,
+        'nominal_investor_payments_df': nominal_investor_payments_df,
+        'nominal_malengo_payments_df': nominal_malengo_payments_df,
+        'nominal_payment_quantiles': nominal_payment_quantiles,
+        'nominal_investor_payment_quantiles': nominal_investor_payment_quantiles,
+        
+        # Other statistics
+        'adjusted_mean_salary': degrees[0].mean_earnings if len(degrees) > 0 else 0,
+        'adjusted_salary_std': degrees[0].stdev if len(degrees) > 0 else 0,
+        'employment_rate': avg_employment_rate,
+        'ever_employed_rate': avg_ever_employed_rate,
+        'repayment_rate': avg_repayment_rate,
+        'cap_stats': avg_cap_stats,
+        'degree_counts': degree_counts,
+        'degree_pcts': degree_pcts
+    }
 
 
 def _calculate_simulation_statistics(
@@ -1276,195 +1459,92 @@ def _calculate_simulation_statistics(
     }
 
 
-def _calculate_summary_statistics(
-    total_payment: Dict[int, np.ndarray],
-    investor_payment: Dict[int, np.ndarray],
-    malengo_payment: Dict[int, np.ndarray],
-    nominal_total_payment: Dict[int, np.ndarray],
-    nominal_investor_payment: Dict[int, np.ndarray],
-    nominal_malengo_payment: Dict[int, np.ndarray],
-    total_investment: float,
-    degrees: List[Degree],
-    probs: List[float],
-    num_students: int,
-    employment_stats: List[float],
-    ever_employed_stats: List[float],
-    repayment_stats: List[float],
-    cap_stats: List[Dict[str, Any]]
-) -> Dict[str, Any]:
-    """Helper function to calculate summary statistics across all simulations."""
-    # Calculate summary statistics for real (inflation-adjusted) payments
-    payments_df = pd.DataFrame(total_payment)
-    average_total_payment = np.sum(payments_df, axis=0).mean()
+def _create_degree_definitions(
+    ba_salary: float, ba_std: float, ba_growth: float,
+    ma_salary: float, ma_std: float, ma_growth: float,
+    asst_salary: float, asst_std: float, asst_growth: float,
+    nurse_salary: float, nurse_std: float, nurse_growth: float,
+    na_salary: float, na_std: float, na_growth: float,
+    trade_salary: float, trade_std: float, trade_growth: float,
+    asst_shift_salary: float, asst_shift_std: float, asst_shift_growth: float
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Helper function to create degree definitions.
     
-    # Calculate weighted average duration (avoiding division by zero)
-    payment_sums = np.sum(payments_df, axis=0)
-    if np.any(payment_sums > 0):
-        # Convert to numpy arrays to avoid pandas indexing issues
-        payments_np = payments_df.to_numpy()
-        payment_sums_np = payment_sums.to_numpy()
-        
-        # Create weights matrix
-        weights = np.zeros_like(payments_np)
-        for i in range(len(payment_sums_np)):
-            if payment_sums_np[i] > 0:
-                weights[:, i] = payments_np[:, i] / payment_sums_np[i]
-        
-        # Calculate weighted average
-        years = np.arange(1, len(payments_df) + 1)
-        weighted_durations = np.sum(years[:, np.newaxis] * weights, axis=0)
-        average_duration = np.mean(weighted_durations)
-    else:
-        average_duration = 0
-    
-    # Calculate real IRR (safely handle negative values)
-    if average_total_payment > 0 and average_duration > 0:
-        IRR = np.log(max(1, average_total_payment) / total_investment) / average_duration
-    else:
-        IRR = -0.1  # Default negative return
-    
-    # Calculate real investor payments
-    investor_payments_df = pd.DataFrame(investor_payment)
-    average_investor_payment = np.sum(investor_payments_df, axis=0).mean()
-    
-    # Calculate real Malengo payments
-    malengo_payments_df = pd.DataFrame(malengo_payment)
-    average_malengo_payment = np.sum(malengo_payments_df, axis=0).mean()
-    
-    # Calculate real investor IRR using total investment as base
-    if average_investor_payment > 0 and average_duration > 0:
-        investor_IRR = np.log(max(1, average_investor_payment) / total_investment) / average_duration
-    else:
-        investor_IRR = -0.1
-    
-    # Calculate real payment quantiles
-    payment_quantiles = {}
-    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
-        quantile_payment = np.sum(payments_df, axis=0).quantile(quantile)
-        if quantile_payment > 0 and average_duration > 0:
-            payment_quantiles[quantile] = np.log(max(1, quantile_payment) / total_investment) / average_duration
-        else:
-            payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))  # Lower default for lower quantiles
-    
-    # Calculate real investor payment quantiles
-    investor_payment_quantiles = {}
-    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
-        investor_quantile_payment = np.sum(investor_payments_df, axis=0).quantile(quantile)
-        if investor_quantile_payment > 0 and average_duration > 0:
-            investor_payment_quantiles[quantile] = np.log(max(1, investor_quantile_payment) / total_investment) / average_duration
-        else:
-            investor_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))  # Lower default for lower quantiles
-    
-    # Prepare real payment data for plotting
-    payment_by_year = payments_df.mean(axis=1)
-    investor_payment_by_year = investor_payments_df.mean(axis=1)
-    malengo_payment_by_year = malengo_payments_df.mean(axis=1)
-    
-    # Calculate average employment and repayment statistics
-    avg_employment_rate = np.mean(employment_stats)
-    avg_ever_employed_rate = np.mean(ever_employed_stats)
-    avg_repayment_rate = np.mean(repayment_stats)
-    
-    # Calculate average cap statistics
-    avg_cap_stats = {
-        'payment_cap_pct': np.mean([s['payment_cap_pct'] for s in cap_stats]),
-        'years_cap_pct': np.mean([s['years_cap_pct'] for s in cap_stats]),
-        'no_cap_pct': np.mean([s['no_cap_pct'] for s in cap_stats]),
-        'avg_cap_value': np.mean([s.get('avg_cap_value', 0) for s in cap_stats])
-    }
-    
-    # Calculate degree counts and percentages
-    degree_counts = {degree.name: probs[i] * num_students for i, degree in enumerate(degrees)}
-    degree_pcts = {degree.name: probs[i] for i, degree in enumerate(degrees)}
-    
-    # Calculate summary statistics for nominal (non-inflation-adjusted) payments
-    nominal_payments_df = pd.DataFrame(nominal_total_payment)
-    avg_nominal_total_payment = np.sum(nominal_payments_df, axis=0).mean()
-    
-    # Calculate nominal investor payments
-    nominal_investor_payments_df = pd.DataFrame(nominal_investor_payment)
-    avg_nominal_investor_payment = np.sum(nominal_investor_payments_df, axis=0).mean()
-    
-    # Calculate nominal Malengo payments
-    nominal_malengo_payments_df = pd.DataFrame(nominal_malengo_payment)
-    avg_nominal_malengo_payment = np.sum(nominal_malengo_payments_df, axis=0).mean()
-    
-    # Calculate nominal IRR values using the same duration as real IRR
-    if avg_nominal_total_payment > 0 and average_duration > 0:
-        nominal_IRR = np.log(max(1, avg_nominal_total_payment) / total_investment) / average_duration
-    else:
-        nominal_IRR = -0.1
-        
-    if avg_nominal_investor_payment > 0 and average_duration > 0:
-        nominal_investor_IRR = np.log(max(1, avg_nominal_investor_payment) / total_investment) / average_duration
-    else:
-        nominal_investor_IRR = -0.1
-    
-    # Calculate nominal payment quantiles
-    nominal_payment_quantiles = {}
-    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
-        nominal_quantile_payment = np.sum(nominal_payments_df, axis=0).quantile(quantile)
-        if nominal_quantile_payment > 0 and average_duration > 0:
-            nominal_payment_quantiles[quantile] = np.log(max(1, nominal_quantile_payment) / total_investment) / average_duration
-        else:
-            nominal_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))
-    
-    # Calculate nominal investor payment quantiles
-    nominal_investor_payment_quantiles = {}
-    for quantile in [0, 0.25, 0.5, 0.75, 1.0]:
-        nominal_investor_quantile_payment = np.sum(nominal_investor_payments_df, axis=0).quantile(quantile)
-        if nominal_investor_quantile_payment > 0 and average_duration > 0:
-            nominal_investor_payment_quantiles[quantile] = np.log(max(1, nominal_investor_quantile_payment) / total_investment) / average_duration
-        else:
-            nominal_investor_payment_quantiles[quantile] = -0.1 - (0.1 * (1-quantile))
-    
-    # Prepare nominal payment data for plotting
-    nominal_payment_by_year = nominal_payments_df.mean(axis=1)
-    nominal_investor_payment_by_year = nominal_investor_payments_df.mean(axis=1)
-    nominal_malengo_payment_by_year = nominal_malengo_payments_df.mean(axis=1)
-    
+    Note:
+        All growth rates should be provided in decimal form (e.g., 0.03 for 3% growth)
+        and will be used directly without further conversion.
+    """
     return {
-        # Real (inflation-adjusted) IRR values
-        'IRR': IRR,
-        'investor_IRR': investor_IRR,
-        'average_total_payment': average_total_payment,
-        'average_investor_payment': average_investor_payment,
-        'average_malengo_payment': average_malengo_payment,
-        'average_duration': average_duration,
-        'payment_by_year': payment_by_year,
-        'investor_payment_by_year': investor_payment_by_year,
-        'malengo_payment_by_year': malengo_payment_by_year,
-        'payments_df': payments_df,
-        'investor_payments_df': investor_payments_df,
-        'malengo_payments_df': malengo_payments_df,
-        'payment_quantiles': payment_quantiles,
-        'investor_payment_quantiles': investor_payment_quantiles,
-        
-        # Nominal (non inflation-adjusted) IRR values
-        'nominal_IRR': nominal_IRR,
-        'nominal_investor_IRR': nominal_investor_IRR,
-        'average_nominal_total_payment': avg_nominal_total_payment,
-        'average_nominal_investor_payment': avg_nominal_investor_payment,
-        'average_nominal_malengo_payment': avg_nominal_malengo_payment,
-        'nominal_payment_by_year': nominal_payment_by_year,
-        'nominal_investor_payment_by_year': nominal_investor_payment_by_year,
-        'nominal_malengo_payment_by_year': nominal_malengo_payment_by_year,
-        'nominal_payments_df': nominal_payments_df,
-        'nominal_investor_payments_df': nominal_investor_payments_df,
-        'nominal_malengo_payments_df': nominal_malengo_payments_df,
-        'nominal_payment_quantiles': nominal_payment_quantiles,
-        'nominal_investor_payment_quantiles': nominal_investor_payment_quantiles,
-        
-        # Other statistics
-        'adjusted_mean_salary': degrees[0].mean_earnings if len(degrees) > 0 else 0,
-        'adjusted_salary_std': degrees[0].stdev if len(degrees) > 0 else 0,
-        'employment_rate': avg_employment_rate,
-        'ever_employed_rate': avg_ever_employed_rate,
-        'repayment_rate': avg_repayment_rate,
-        'cap_stats': avg_cap_stats,
-        'degree_counts': degree_counts,
-        'degree_pcts': degree_pcts
+        'BA': {
+            'name': 'BA',
+            'mean_earnings': ba_salary,
+            'stdev': ba_std,
+            'experience_growth': ba_growth,  # Growth rate already in decimal form
+            'years_to_complete': 4
+        },
+        'MA': {
+            'name': 'MA',
+            'mean_earnings': ma_salary,
+            'stdev': ma_std,
+            'experience_growth': ma_growth,  # Growth rate already in decimal form
+            'years_to_complete': 6
+        },
+        'ASST': {
+            'name': 'ASST',
+            'mean_earnings': asst_salary,
+            'stdev': asst_std,
+            'experience_growth': asst_growth,  # Growth rate already in decimal form
+            'years_to_complete': 3
+        },
+        'ASST_SHIFT': {
+            'name': 'ASST_SHIFT',
+            'mean_earnings': asst_shift_salary,
+            'stdev': asst_shift_std,
+            'experience_growth': asst_shift_growth,  # Growth rate already in decimal form
+            'years_to_complete': 6
+        },
+        'NURSE': {
+            'name': 'NURSE',
+            'mean_earnings': nurse_salary,
+            'stdev': nurse_std,
+            'experience_growth': nurse_growth,  # Growth rate already in decimal form
+            'years_to_complete': 4
+        },
+        'NA': {
+            'name': 'NA',
+            'mean_earnings': na_salary,
+            'stdev': na_std,
+            'experience_growth': na_growth,  # Growth rate already in decimal form
+            'years_to_complete': 4
+        },
+        'TRADE': {
+            'name': 'TRADE',
+            'mean_earnings': trade_salary,
+            'stdev': trade_std,
+            'experience_growth': trade_growth,  # Growth rate already in decimal form
+            'years_to_complete': 3
+        }
     }
+
+
+def _create_students(
+    num_students: int, 
+    degrees: List[Degree], 
+    probs: List[float], 
+    num_years: int
+) -> List[Student]:
+    """Helper function to create and assign degrees to students."""
+    # Assign degrees to each student
+    test_array = np.array([np.random.multinomial(1, probs) for _ in range(num_students)])
+    degree_labels = np.array(degrees)[test_array.argmax(axis=1)]
+    
+    # Create student objects
+    students = []
+    for i in range(num_students):
+        students.append(Student(degree_labels[i], num_years))
+    
+    return students
 
 
 def main():
@@ -1507,6 +1587,10 @@ def main():
     parser.add_argument('--trade-growth', type=float, default=0.02, 
                         help='Annual growth rate for TRADE salaries (in decimal form, e.g., 0.02 for 2%)')
     
+    # Fee parameters
+    parser.add_argument('--annual-fee', type=float, default=300,
+                        help='Annual fee per active student (in USD)')
+    
     # Comparison mode for generating comparison charts
     parser.add_argument('--comparison', action='store_true', 
                         help='Enable comparison mode to generate charts comparing scenarios')
@@ -1528,6 +1612,7 @@ def main():
             nurse_growth=args.nurse_growth,
             na_growth=args.na_growth,
             trade_growth=args.trade_growth,
+            annual_fee_per_student=args.annual_fee,
             random_seed=args.seed,
             apply_graduation_delay=args.graduation_delay
         )
@@ -1544,6 +1629,7 @@ def main():
             nurse_growth=args.nurse_growth,
             na_growth=args.na_growth,
             trade_growth=args.trade_growth,
+            annual_fee_per_student=args.annual_fee,
             random_seed=args.seed,
             apply_graduation_delay=args.graduation_delay
         )
@@ -1560,6 +1646,7 @@ def main():
             nurse_growth=args.nurse_growth,
             na_growth=args.na_growth,
             trade_growth=args.trade_growth,
+            annual_fee_per_student=args.annual_fee,
             random_seed=args.seed,
             apply_graduation_delay=args.graduation_delay
         )
@@ -1615,7 +1702,33 @@ def main():
         plt.tight_layout()
         plt.savefig(f'{args.program}_cumulative_returns.png')
         
-        print(f"\nComparison results saved to {args.program}_irr_comparison.png and {args.program}_cumulative_returns.png")
+        # 3. Active Students comparison
+        plt.figure(figsize=(12, 7))
+        
+        plt.plot(years, results_baseline['active_students_by_year'], label='Baseline')
+        plt.plot(years, results_conservative['active_students_by_year'], label='Conservative')
+        plt.plot(years, results_optimistic['active_students_by_year'], label='Optimistic')
+        
+        plt.xlabel('Year')
+        plt.ylabel('Number of Active Students')
+        plt.title(f'{args.program} - Active Students Comparison')
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(f'{args.program}_active_students.png')
+        
+        # Print active students comparison
+        print("\nActive Students Comparison:")
+        print(f"Baseline: {results_baseline['avg_active_students']:.1f} active students ({results_baseline['active_students_pct']*100:.1f}% of total)")
+        print(f"Conservative: {results_conservative['avg_active_students']:.1f} active students ({results_conservative['active_students_pct']*100:.1f}% of total)")
+        print(f"Optimistic: {results_optimistic['avg_active_students']:.1f} active students ({results_optimistic['active_students_pct']*100:.1f}% of total)")
+        
+        print(f"\nAnnual Malengo Fee Revenue:")
+        print(f"Baseline: ${results_baseline['annual_malengo_revenue']:.2f}")
+        print(f"Conservative: ${results_conservative['annual_malengo_revenue']:.2f}")
+        print(f"Optimistic: ${results_optimistic['annual_malengo_revenue']:.2f}")
+        
+        print(f"\nComparison results saved to {args.program}_irr_comparison.png, {args.program}_cumulative_returns.png, and {args.program}_active_students.png")
         
     else:
         # Run with selected scenario and growth rates
@@ -1631,6 +1744,7 @@ def main():
             nurse_growth=args.nurse_growth,
             na_growth=args.na_growth,
             trade_growth=args.trade_growth,
+            annual_fee_per_student=args.annual_fee,
             random_seed=args.seed,
             apply_graduation_delay=args.graduation_delay
         )
@@ -1648,6 +1762,13 @@ def main():
         print(f"Annual Employment Rate: {results['employment_rate']*100:.2f}%")
         print(f"Ever Employed Rate: {results.get('ever_employed_rate', 0)*100:.2f}%")
         print(f"Repayment Rate: {results['repayment_rate']*100:.2f}%")
+        
+        # Print active students statistics
+        print("\nActive Students Statistics:")
+        print(f"Average Active Students: {results['avg_active_students']:.1f} ({results['active_students_pct']*100:.1f}% of total)")
+        print(f"Maximum Active Students: {results['max_active_students']:.1f}")
+        print(f"Annual Malengo Fee Revenue: ${results['annual_malengo_revenue']:.2f}")
+        print(f"Total Malengo Fee Revenue: ${results['total_malengo_revenue']:.2f}")
         
         # Print degree distribution
         print("\nDegree Distribution:")
@@ -1719,7 +1840,19 @@ def main():
         plt.tight_layout()
         plt.savefig(f'{args.program}_{args.scenario}_cumulative_returns.png')
         
-        print(f"\nPlots saved to {args.program}_{args.scenario}_annual_payments.png and {args.program}_{args.scenario}_cumulative_returns.png")
+        # 3. Active students plot
+        plt.figure(figsize=(10, 6))
+        
+        plt.plot(years, results['active_students_by_year'], label='Active Students')
+        
+        plt.xlabel('Year')
+        plt.ylabel('Number of Active Students')
+        plt.title(f'{results["program_type"]} - Active Students Over Time')
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(f'{args.program}_{args.scenario}_active_students.png')
+        
+        print(f"\nPlots saved to {args.program}_{args.scenario}_annual_payments.png, {args.program}_{args.scenario}_cumulative_returns.png, and {args.program}_{args.scenario}_active_students.png")
 
 
 if __name__ == "__main__":

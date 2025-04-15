@@ -63,13 +63,13 @@ The model can also be run directly from the command line:
 
 ```bash
 # Run a baseline Nurse scenario
-python simple_isa_model.py --program Nurse --scenario baseline --students 100 --sims 10
+python simple_isa_model.py --program Kenya --scenario baseline --students 100 --sims 10
 
 # Run a custom University scenario with plots
-python simple_isa_model.py --program University --scenario baseline --students 200 --sims 20 --plot
+python simple_isa_model.py --program Uganda --scenario baseline --students 200 --sims 20 --plot
 
 # Run with a fixed random seed for reproducibility
-python simple_isa_model.py --program Nurse --scenario conservative --seed 42
+python simple_isa_model.py --program Kenya --scenario conservative --seed 42
 ```
 
 ## Customization

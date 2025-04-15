@@ -2734,51 +2734,335 @@ def update_payment_data_table(results):
     payment_by_year = pd.Series(results['payment_by_year'])
     malengo_payment_by_year = pd.Series(results['malengo_payment_by_year'])
     
-    # Handle active students data - try different possible keys and formats
-    active_students_data = None
-    for key in ['Active_Students_Count', 'active_students_by_year', 'active_students']:
-        if key in results:
-            active_students_data = results[key]
-            break
-    
-    if active_students_data is None:
-        # If no active students data found, create zeros array
-        active_students_by_year = pd.Series(np.zeros(len(payment_by_year)))
-    else:
-        # Convert to pandas Series if it isn't already
-        active_students_by_year = pd.Series(active_students_data)
-    
-    # Get the number of years from payment data
+    # Define the number of years in the simulation right at the start
     num_years = len(payment_by_year)
     
-    # Create the DataFrame with only the data we have from results
+    # Get number of students and degree completion times
+    num_students = 0
+    for degree in results.get('degree_counts', {}):
+        num_students += results['degree_counts'][degree]
+    
+    if num_students == 0:
+        num_students = 100  # Default if no data available
+        print(f"WARNING: No students found in degree_counts, defaulting to {num_students} students")
+        
+        # If we need to create default degree distribution, create it here
+        if not results.get('degree_counts'):
+            results['degree_counts'] = {'BA': 100}
+            results['degree_pcts'] = {'BA': 1.0}
+    
+    # Get degree distribution and completion times
+    degree_pcts = results.get('degree_pcts', {})
+    degree_counts = results.get('degree_counts', {})
+    
+    # Define degree nominal completion times
+    base_degree_times = {
+        'BA': 4,
+        'MA': 6,
+        'ASST': 3,
+        'NURSE': 3,
+        'TRADE': 3,
+        'NA': 4
+    }
+    
+    # Adjust for program type - add 1 year for language training in Kenya/Rwanda
+    if results['program_type'] in ['Kenya', 'Rwanda']:
+        for degree in base_degree_times:
+            base_degree_times[degree] += 1
+    
+    # Check if graduation delay is applied
+    apply_graduation_delay = results.get('apply_graduation_delay', False)
+    
+    # Model graduation over time with the degree-specific delay distribution
+    def calculate_graduation_distribution(degree_count, base_years, degree_type=''):
+        graduation_counts = {}
+        
+        # Special distribution for Masters, Nurse, and Trade degrees
+        if degree_type in ['MA', 'NURSE', 'TRADE']:
+            # 75% on time, 20% +1 year, 2.5% +2 years, 2.5% +3 years
+            for year in range(base_years, base_years + 4):
+                if year == base_years:
+                    # 75% graduate on time
+                    graduation_counts[year] = degree_count * 0.75
+                elif year == base_years + 1:
+                    # 20% graduate 1 year late
+                    graduation_counts[year] = degree_count * 0.20
+                elif year == base_years + 2:
+                    # 2.5% graduate 2 years late
+                    graduation_counts[year] = degree_count * 0.025
+                elif year == base_years + 3:
+                    # 2.5% graduate 3 years late
+                    graduation_counts[year] = degree_count * 0.025
+        else:
+            # Default distribution for BA, ASST, NA degrees
+            # 50% on time, 25% +1 year, 12.5% +2 years, 6.25% +3 years, 6.25% +4 years
+            for year in range(base_years, base_years + 5):
+                if year == base_years:
+                    # 50% graduate on time
+                    graduation_counts[year] = degree_count * 0.5
+                elif year == base_years + 1:
+                    # 25% graduate 1 year late
+                    graduation_counts[year] = degree_count * 0.25
+                elif year == base_years + 2:
+                    # 12.5% graduate 2 years late
+                    graduation_counts[year] = degree_count * 0.125
+                elif year == base_years + 3:
+                    # 6.25% graduate 3 years late
+                    graduation_counts[year] = degree_count * 0.0625
+                elif year == base_years + 4:
+                    # 6.25% graduate 4 years late
+                    graduation_counts[year] = degree_count * 0.0625
+                    
+        return graduation_counts
+    
+    # Track graduations by year for each degree type
+    degree_graduations = {}
+    
+    # Find the minimum graduation time across all degrees to determine when first graduations occur
+    min_grad_time = min([base_years for degree, base_years in base_degree_times.items() 
+                        if degree in degree_counts and degree_counts[degree] > 0])
+    
+    if apply_graduation_delay:
+        # Use the delay distribution
+        for degree, count in degree_counts.items():
+            if degree in base_degree_times and count > 0:
+                # Calculate graduation distribution for this degree
+                degree_graduations[degree] = calculate_graduation_distribution(
+                    count, base_degree_times[degree], degree
+                )
+    else:
+        # Use simple graduation at exact base times
+        for degree, count in degree_counts.items():
+            if degree in base_degree_times and count > 0:
+                degree_graduations[degree] = {base_degree_times[degree]: count}
+    
+    # Calculate total graduations per year
+    graduations_by_year = {}
+    
+    # Initialize graduations_by_year with 0 for all years
+    for year in range(num_years):
+        graduations_by_year[year] = 0
+    
+    # Fill in actual graduations from degree_graduations
+    for degree, grad_schedule in degree_graduations.items():
+        for year, count in grad_schedule.items():
+            if year < num_years:  # Make sure we don't exceed the simulation years
+                graduations_by_year[year] += count
+    
+    # Initialize tracking arrays with correct length
+    in_school = [0] * num_years
+    graduated = [0] * num_years
+    graduations_this_year = [0] * num_years
+    not_repaying_graduated = {year: 0 for year in range(num_years)}
+    
+    # Current number of students in school (starts with all students)
+    students_in_school = num_students
+    cumulative_graduated = 0
+    
+    # First year all students are in school
+    in_school[0] = num_students
+    
+    # Get employment and repayment rates
+    employment_rate = results['employment_rate']
+    repayment_rate = results['repayment_rate']
+    
+    # Get cap stats
+    cap_stats = results.get('cap_stats', {})
+    
+    # If cap_stats only has percentages but not counts, calculate the counts from percentages
+    if 'payment_cap_pct' in cap_stats and 'payment_cap_count' not in cap_stats:
+        cap_stats['payment_cap_count'] = cap_stats['payment_cap_pct'] * num_students
+        cap_stats['years_cap_count'] = cap_stats['years_cap_pct'] * num_students
+        cap_stats['no_cap_count'] = cap_stats['no_cap_pct'] * num_students
+    
+    # If cap_stats is missing repayment values, add default values
+    if 'avg_repayment_cap_hit' not in cap_stats:
+        avg_payment = results.get('average_total_payment', 0)
+        cap_stats['avg_repayment_cap_hit'] = results.get('isa_cap', avg_payment * 1.5)
+        cap_stats['avg_repayment_years_hit'] = avg_payment * 0.8
+        cap_stats['avg_repayment_no_cap'] = avg_payment * 0.5
+    
+    # Get active students count from the results if available
+    active_students_by_year = results.get('active_students_by_year', None)
+    active_students = {}
+
+    # Handle active students data
+    if active_students_by_year is not None:
+        # Active students data is available from the model
+        if isinstance(active_students_by_year, pd.Series):
+            # Convert Series to dictionary for easier access
+            for year in range(min(num_years, len(active_students_by_year))):
+                active_students[year] = int(round(active_students_by_year.iloc[year]))
+        elif isinstance(active_students_by_year, dict):
+            # If already a dictionary, use directly
+            for year in range(num_years):
+                active_students[year] = int(round(active_students_by_year.get(year, 0)))
+        else:
+            # If another type, try to convert to list then to dict
+            try:
+                active_students_list = list(active_students_by_year)
+                for year in range(min(num_years, len(active_students_list))):
+                    active_students[year] = int(round(active_students_list[year]))
+            except:
+                # If conversion fails, we'll estimate below
+                active_students = {year: 0 for year in range(num_years)}
+    else:
+        # Initialize with zeros if we need to estimate later
+        active_students = {year: 0 for year in range(num_years)}
+    
+    # Process graduation and payments for each year after year 0
+    for year in range(1, num_years):
+        # Get graduations for this year
+        year_graduations = graduations_by_year.get(year, 0)
+        
+        # Ensure graduations never exceed students in school
+        year_graduations = min(year_graduations, students_in_school)
+        
+        # Update students in school and cumulative graduations
+        students_in_school -= year_graduations
+        cumulative_graduated += year_graduations
+        
+        # Ensure bounds are maintained
+        students_in_school = max(0, students_in_school)
+        cumulative_graduated = min(cumulative_graduated, num_students)
+        
+        # Calculate active students if not already set from results
+        if active_students_by_year is None and active_students[year] == 0:
+            # We need to estimate active students for this year
+            # Start with current year graduations
+            recent_graduates = year_graduations
+            
+            # Add graduates from previous 3 years if we have data
+            for prev_year in range(max(1, year-3), year):
+                if prev_year >= 0 and prev_year < num_years:
+                    recent_graduates += graduations_by_year.get(prev_year, 0)
+            
+            # Remove NA degree holders (using proportion from degree distribution)
+            na_proportion = degree_pcts.get('NA', 0)
+            non_na_proportion = 1.0 - na_proportion
+            
+            # Remove students who hit caps (using proportion from cap_stats)
+            caps_proportion = cap_stats.get('payment_cap_pct', 0) + cap_stats.get('years_cap_pct', 0)
+            non_caps_proportion = 1.0 - caps_proportion
+            
+            # Apply criteria for active students
+            # Only count graduates who:
+            # 1. Are not NA degree holders
+            # 2. Have not hit caps
+            # 3. Have graduated recently or made payments (approximated by repayment rate)
+            active_students[year] = recent_graduates * non_na_proportion * non_caps_proportion * repayment_rate
+        
+        # Calculate students who have graduated but are not active
+        not_repaying_graduated[year] = cumulative_graduated - active_students[year]
+        
+        # Store current year data in tracking arrays
+        in_school[year] = int(students_in_school)
+        graduated[year] = int(cumulative_graduated)
+        graduations_this_year[year] = int(year_graduations)
+    
+    # Estimate average earnings
+    # Based on the average payment amount and the ISA percentage
+    isa_percentage = results['isa_percentage']
+    isa_threshold = results['isa_threshold']
+    
+    # Calculate average earnings for different groups
+    avg_earnings_repaying = []
+    avg_repayment_if_repaying = []
+    
+    # Process earnings data
+    for year in range(num_years):
+        try:
+            year_idx = year
+            # Use iloc or get() instead of direct indexing to avoid Series.__getitem__ warning
+            payment = payment_by_year.get(year, 0) if isinstance(payment_by_year, dict) else payment_by_year.iloc[year] if year < len(payment_by_year) else 0
+            
+            # Skip years where no one has graduated yet
+            if graduated[year_idx] <= 0:
+                avg_earnings_repaying.append(0)
+                avg_repayment_if_repaying.append(0)
+                continue
+                
+            # Calculate active students count for this year
+            active_count = active_students[year_idx]
+            
+            # For students who have graduated, estimate their average earnings
+            if payment > 0 and active_count > 0:
+                # Average payment per active student
+                payment_per_student = payment / active_count
+                
+                # Set average repayment for those who are repaying
+                avg_repayment_if_repaying.append(payment_per_student)
+                
+                # Only calculate earnings for those who are repaying 
+                # Since payment = isa_percentage * earnings, we just divide the payment by the ISA percentage
+                estimated_earnings_repaying = payment_per_student / isa_percentage
+                avg_earnings_repaying.append(estimated_earnings_repaying)
+            else:
+                avg_earnings_repaying.append(0)
+                avg_repayment_if_repaying.append(0)
+        except Exception as e:
+            # Handle any errors (like KeyError) gracefully
+            print(f"Error processing year {year}: {str(e)}")
+            avg_earnings_repaying.append(0)
+            avg_repayment_if_repaying.append(0)
+    
+    # Ensure all arrays have the same length
+    # Make sure in_school has the right length (should be num_years)
+    if len(in_school) > num_years:
+        in_school = in_school[:num_years]
+    elif len(in_school) < num_years:
+        in_school = in_school + [0] * (num_years - len(in_school))
+    
+    # Make sure all other arrays have the right length
+    graduated = graduated[:num_years] if len(graduated) > num_years else graduated + [0] * (num_years - len(graduated))
+    graduations_this_year = graduations_this_year[:num_years] if len(graduations_this_year) > num_years else graduations_this_year + [0] * (num_years - len(graduations_this_year))
+    
+    # Ensure not_repaying_graduated has correct length
+    
+    # Create active_students list from dictionary for plotting
+    active_students_list = [active_students.get(year, 0) for year in range(num_years)]
+    
+    # Make sure avg_repayment_if_repaying has the right length
+    avg_repayment_if_repaying = avg_repayment_if_repaying[:num_years] if len(avg_repayment_if_repaying) > num_years else avg_repayment_if_repaying + [0] * (num_years - len(avg_repayment_if_repaying))
+    
+    # Calculate fees per active student
+    annual_fee_per_student = results.get('annual_fee_per_student', 300)  # Default to $300 if not specified
+    estimated_fees = [int(active_students.get(year, 0) * annual_fee_per_student) for year in range(num_years)]
+    
+    # Update the DataFrame with only reliable columns
     payment_df = pd.DataFrame({
         'Year': range(num_years),
-        'Active Students': [int(round(active_students_by_year.iloc[i])) if i < len(active_students_by_year) else 0 
-                          for i in range(num_years)],
-        'Total Payment ($)': [payment_by_year.iloc[i] if i < len(payment_by_year) else 0 
+        'Students in School': in_school,
+        'Graduations': graduations_this_year,
+        'Total Graduated': graduated,
+        'Active Students': [int(active_students.get(year, 0)) for year in range(num_years)],
+        'Graduated Not Active': [int(not_repaying_graduated.get(year, 0)) for year in range(num_years)],
+        'Avg Repayment (Active)': [int(x) for x in avg_repayment_if_repaying],
+        'Total Payment ($)': [payment_by_year.get(i, 0) if isinstance(payment_by_year, dict) 
+                              else payment_by_year.iloc[i] if i < len(payment_by_year) else 0 
+                              for i in range(num_years)],
+        'Malengo Fee ($)': [malengo_payment_by_year.get(i, 0) if isinstance(malengo_payment_by_year, dict)
+                            else malengo_payment_by_year.iloc[i] if i < len(malengo_payment_by_year) else 0
                             for i in range(num_years)],
-        'Malengo Fee ($)': [malengo_payment_by_year.iloc[i] if i < len(malengo_payment_by_year) else 0 
-                           for i in range(num_years)]
+        'Fee per Active ($)': [annual_fee_per_student] * num_years,
+        'Estimated Fee Total ($)': estimated_fees
     })
     
-    # Add average payment per active student, handling division by zero
-    payment_df['Avg Payment per Active ($)'] = [
-        round(payment_by_year.iloc[i] / active_students_by_year.iloc[i])
-        if i < len(payment_by_year) and i < len(active_students_by_year) and active_students_by_year.iloc[i] > 0
-        else 0
-        for i in range(num_years)
-    ]
-    
-    # Create the DataTable
+    # Table with only reliable columns
     table = dash_table.DataTable(
         data=payment_df.to_dict('records'),
         columns=[
             {'name': 'Year', 'id': 'Year', 'type': 'numeric'},
+            {'name': 'Students in School', 'id': 'Students in School', 'type': 'numeric'},
+            {'name': 'Graduations', 'id': 'Graduations', 'type': 'numeric'},
+            {'name': 'Total Graduated', 'id': 'Total Graduated', 'type': 'numeric'},
             {'name': 'Active Students', 'id': 'Active Students', 'type': 'numeric'},
+            {'name': 'Graduated Not Active', 'id': 'Graduated Not Active', 'type': 'numeric'},
+            {'name': 'Avg Repayment (Active) ($)', 'id': 'Avg Repayment (Active)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
             {'name': 'Total Payment ($)', 'id': 'Total Payment ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
             {'name': 'Malengo Fee ($)', 'id': 'Malengo Fee ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
-            {'name': 'Avg Payment per Active ($)', 'id': 'Avg Payment per Active ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
+            {'name': 'Fee per Active ($)', 'id': 'Fee per Active ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)},
+            {'name': 'Estimated Fee Total ($)', 'id': 'Estimated Fee Total ($)', 'type': 'numeric', 'format': dash_table.FormatTemplate.money(0)}
         ],
         style_table={'overflowX': 'auto'},
         style_cell={'textAlign': 'center', 'padding': '10px'},
@@ -2794,27 +3078,43 @@ def update_payment_data_table(results):
         ],
         sort_action='native',
         filter_action='native',
-        page_size=25
+        page_size=25,  # Show all years without pagination
     )
     
-    # Get summary statistics from results
-    avg_active_students = results.get('avg_active_students', 0)
-    active_students_pct = results.get('active_students_pct', 0)
-    annual_malengo_revenue = results.get('annual_malengo_revenue', 0)
+    # Get the fee and active student info for the summary section
+    annual_fee = annual_fee_per_student
     
+    # Use the active students data from the model if available, otherwise calculate from our estimates
+    if 'avg_active_students' in results:
+        avg_active_students = results['avg_active_students']
+        active_students_pct = results.get('active_students_pct', avg_active_students/num_students)
+    else:
+        # Calculate from our estimates
+        active_students_values = list(active_students.values())
+        avg_active_students = sum(active_students_values)/max(1, len(active_students_values))
+        active_students_pct = avg_active_students/num_students
+    
+    annual_malengo_revenue = results.get('annual_malengo_revenue', avg_active_students * annual_fee)
+    
+    # Update the return statement to include clearer explanation text
     return html.Div([
-        html.H4(f"{results['program_type']} Program - Payment & Student Data", style={'textAlign': 'center', 'marginBottom': '20px'}),
+        html.H4(f"{results['program_type']} Program - Detailed Payment & Student Data", style={'textAlign': 'center', 'marginBottom': '20px'}),
         html.Div([
             html.P(f"Total Investment: ${results['total_investment']:,.2f}", style={'fontWeight': 'bold'}),
             html.P(f"Average Total Payment: ${results.get('average_nominal_total_payment', results.get('average_total_payment', 0)):,.2f}", style={'fontWeight': 'bold'}),
             html.P(f"Average Duration: {results['average_duration']:.2f} years", style={'fontWeight': 'bold'}),
+            html.P(f"Annual Employment Rate: {results['employment_rate']*100:.1f}%", style={'fontWeight': 'bold'}),
             html.P(f"Average Active Students: {avg_active_students:.1f} ({active_students_pct*100:.1f}%)", style={'fontWeight': 'bold'}),
+            html.P(f"Annual Fee per Active Student: ${annual_fee}", style={'fontWeight': 'bold'}),
             html.P(f"Estimated Annual Malengo Revenue: ${annual_malengo_revenue:.2f}", style={'fontWeight': 'bold'})
         ], style={'marginBottom': '20px', 'textAlign': 'center'}),
         html.P("Active Students are graduates who have made a payment within the last 3 years or graduated recently, have not hit caps, and are not NA degree holders.",
               style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'textAlign': 'center'}),
-        html.P("Malengo fees consist of a $300 annual fee per active student (adjusted for inflation) plus 2.5% of all repayments.",
-              style={'marginBottom': '15px', 'fontStyle': 'italic', 'fontSize': '0.9em', 'textAlign': 'center'}),
+        html.P("The 'Graduations' column shows how many students graduate each year, incorporating the delay distribution.",
+              style={'marginBottom': '5px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
+        html.P("Malengo fees are based on a flat fee per active student rather than a percentage of payments.",
+              style={'marginBottom': '5px', 'fontStyle': 'italic', 'fontSize': '0.9em'}),
+
         table
     ])
 

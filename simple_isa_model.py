@@ -928,6 +928,7 @@ def run_simple_simulation(
     isa_percentage: Optional[float] = None,
     isa_threshold: float = 27000,
     isa_cap: Optional[float] = None,
+    price_per_student: Optional[float] = None,
     new_malengo_fee: bool = True,
     annual_fee_per_student: float = 300,
     # Additional parameters
@@ -961,6 +962,7 @@ def run_simple_simulation(
         isa_percentage: Custom ISA percentage (defaults based on program type)
         isa_threshold: Custom ISA threshold
         isa_cap: Custom ISA cap (defaults based on program type)
+        price_per_student: Cost per student (defaults: Uganda: $29,000, Kenya/Rwanda: $16,650)
         new_malengo_fee: Whether to use the new Malengo fee structure
         annual_fee_per_student: Annual fee charged per active student (for new fee structure)
         random_seed: Optional seed for random number generation
@@ -1000,15 +1002,16 @@ def run_simple_simulation(
         else:
             isa_cap = 50000  # Default
     
-    # Program-specific parameters
-    if program_type == 'Uganda':
-        price_per_student = 29000
-    elif program_type == 'Kenya':
-        price_per_student = 16650
-    elif program_type == 'Rwanda':
-        price_per_student = 16650  
-    else:
-        raise ValueError("Program type must be 'Uganda', 'Kenya', or 'Rwanda'")
+    # Set default price_per_student based on program type if not provided
+    if price_per_student is None:
+        if program_type == 'Uganda':
+            price_per_student = 29000
+        elif program_type == 'Kenya':
+            price_per_student = 16650
+        elif program_type == 'Rwanda':
+            price_per_student = 16650  
+        else:
+            raise ValueError("Program type must be 'Uganda', 'Kenya', or 'Rwanda'")
     
     # Set default values for asst_shift if not provided
     if asst_shift_salary is None:

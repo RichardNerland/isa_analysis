@@ -856,9 +856,10 @@ app.layout = html.Div([
                             html.Label("ISA Parameters", style={'fontWeight': 'bold', 'fontSize': '16px', 'marginBottom': '10px'}),
                             
                             html.Div([
-                                html.Div([html.Label("ISA Percentage (%)")], style={'width': '33%', 'display': 'inline-block'}),
-                                html.Div([html.Label("ISA Threshold ($)")], style={'width': '33%', 'display': 'inline-block'}),
-                                html.Div([html.Label("ISA Cap ($)")], style={'width': '33%', 'display': 'inline-block'}),
+                                html.Div([html.Label("ISA Percentage (%)")], style={'width': '25%', 'display': 'inline-block'}),
+                                html.Div([html.Label("ISA Threshold ($)")], style={'width': '25%', 'display': 'inline-block'}),
+                                html.Div([html.Label("ISA Cap ($)")], style={'width': '25%', 'display': 'inline-block'}),
+                                html.Div([html.Label("Price per Student ($)")], style={'width': '25%', 'display': 'inline-block'}),
                             ], style={'marginBottom': '5px', 'textAlign': 'center'}),
                             
                             html.Div([
@@ -872,7 +873,7 @@ app.layout = html.Div([
                                         step=0.1,
                                         style={'width': '100%'}
                                     )
-                                ], style={'width': '33%', 'display': 'inline-block'}),
+                                ], style={'width': '25%', 'display': 'inline-block'}),
                                 
                                 html.Div([
                                     dcc.Input(
@@ -883,7 +884,7 @@ app.layout = html.Div([
                                         step=1000,
                                         style={'width': '100%'}
                                     )
-                                ], style={'width': '33%', 'display': 'inline-block'}),
+                                ], style={'width': '25%', 'display': 'inline-block'}),
                                 
                                 html.Div([
                                     dcc.Input(
@@ -894,8 +895,22 @@ app.layout = html.Div([
                                         step=1000,
                                         style={'width': '100%'}
                                     )
-                                ], style={'width': '33%', 'display': 'inline-block'}),
-                            ], style={'marginBottom': '20px'}),
+                                ], style={'width': '25%', 'display': 'inline-block'}),
+                                
+                                html.Div([
+                                    dcc.Input(
+                                        id="price-per-student-input", 
+                                        type="number", 
+                                        value=29000,  # Default to Uganda values
+                                        min=0, 
+                                        step=1000,
+                                        style={'width': '100%'}
+                                    )
+                                ], style={'width': '25%', 'display': 'inline-block'}),
+                            ], style={'marginBottom': '15px'}),
+                            
+                            html.P("Price per Student represents the total cost/investment per student that investors will pay to purchase an ISA.", 
+                                 style={'fontSize': '0.85em', 'fontStyle': 'italic', 'color': '#666', 'marginBottom': '5px', 'textAlign': 'center'})
                         ], style={'marginBottom': '20px', 'backgroundColor': '#e6f7ff', 'padding': '15px', 'borderRadius': '5px'}),
                         
                         html.Div([
@@ -1343,6 +1358,7 @@ def update_from_preset(preset_name):
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
+     State("price-per-student-input", "value"),
      State("num-students", "value"),
      State("num-sims", "value"),
      State("unemployment-rate", "value"),
@@ -1354,7 +1370,7 @@ def run_simulation(n_clicks, degree_dist_type, preset_scenario, ba_pct, ma_pct, 
                    asst_salary, asst_std, asst_growth, asst_shift_salary, asst_shift_std, asst_shift_growth,
                    nurse_salary, nurse_std, nurse_growth,
                    na_salary, na_std, na_growth, trade_salary, trade_std, trade_growth,
-                   isa_percentage, isa_threshold, isa_cap,
+                   isa_percentage, isa_threshold, isa_cap, price_per_student,
                    num_students, num_sims, unemployment_rate, inflation_rate, 
                    leave_labor_force_prob):
     if n_clicks is None:
@@ -1408,6 +1424,7 @@ def run_simulation(n_clicks, degree_dist_type, preset_scenario, ba_pct, ma_pct, 
             isa_percentage=isa_percentage,
             isa_threshold=isa_threshold,
             isa_cap=isa_cap,
+            price_per_student=price_per_student,
             initial_unemployment_rate=unemployment_rate,
             initial_inflation_rate=inflation_rate,
             leave_labor_force_probability=leave_labor_force_prob,
@@ -1917,7 +1934,8 @@ def update_degree_info(results):
 @app.callback(
     [Output("isa-percentage-input", "value"),
      Output("isa-threshold-input", "value"),
-     Output("isa-cap-input", "value")],
+     Output("isa-cap-input", "value"),
+     Output("price-per-student-input", "value")],
     [Input("preset-scenario", "value")]
 )
 def update_isa_params(preset_scenario):
@@ -1928,13 +1946,13 @@ def update_isa_params(preset_scenario):
         program_type = 'Uganda'  # Default
     
     if program_type == 'Uganda':
-        return 14, 27000, 72500
+        return 14, 27000, 72500, 29000
     elif program_type == 'Kenya':
-        return 12, 27000, 49950
+        return 12, 27000, 49950, 16650
     elif program_type == 'Rwanda':
-        return 12, 27000, 45000  # Changed from 10% to 12%
+        return 12, 27000, 45000, 16650  # Changed from 10% to 12%
     else:
-        return 12, 27000, 50000  # Default values
+        return 12, 27000, 50000, 20000  # Default values
 
 # Add callbacks for scenario comparison functionality
 @app.callback(
@@ -2222,6 +2240,7 @@ def validate_weight_sum(weight1, weight2, weight3):
      State("isa-percentage-input", "value"),
      State("isa-threshold-input", "value"),
      State("isa-cap-input", "value"),
+     State("price-per-student-input", "value"),
      State("num-students", "value"),
      State("inflation-rate", "value")]
 )
@@ -2232,7 +2251,7 @@ def run_blended_monte_carlo(n_clicks, num_sims,
                            preset_scenario, ba_pct, ma_pct, asst_pct, nurse_pct, na_pct, trade_pct,
                            ba_salary, ma_salary, asst_salary, nurse_salary, na_salary, trade_salary,
                            ba_growth, ma_growth, asst_growth, nurse_growth, na_growth, trade_growth,
-                           isa_percentage, isa_threshold, isa_cap,
+                           isa_percentage, isa_threshold, isa_cap, price_per_student,
                            num_students, inflation_rate):
     if n_clicks == 0:
         return "", html.Div("Click 'Run Blended Monte Carlo Simulation' to see results")
@@ -2336,6 +2355,7 @@ def run_blended_monte_carlo(n_clicks, num_sims,
         'isa_percentage': (isa_percentage or 12) / 100.0,
         'isa_threshold': isa_threshold or 27000,
         'isa_cap': isa_cap or 50000,
+        'price_per_student': price_per_student or (29000 if program_type == 'Uganda' else 16650),
         'initial_inflation_rate': (inflation_rate or 2) / 100.0
     }
     

@@ -1,177 +1,257 @@
-# Income Share Agreement (ISA) Simulation Model
+# ISA Analysis Tool
 
-This repository contains a Python model for simulating Income Share Agreements (ISAs) for educational programs. The model allows for the simulation of different scenarios, degree types, and economic conditions to evaluate the financial performance of ISA programs.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Dash](https://img.shields.io/badge/Dash-2.14.2-blue.svg)](https://dash.plotly.com/)
 
-## Overview
+A comprehensive web-based simulation tool for analyzing Income Share Agreement (ISA) financial outcomes across different educational programs and economic scenarios.
 
-The ISA model simulates student outcomes after graduation, including:
-- Employment status
-- Earnings progression
-- ISA payments
-- Return on investment for investors and service providers
+## 🎯 Overview
 
-The model supports three main program types:
-- University programs (primarily BA degrees)
-- Nurse programs (nursing and assistant tracks)
-- Trade programs (Skilled trades and assistant tracks)
+The ISA Analysis Tool helps stakeholders understand the financial outcomes of Income Share Agreement programs by modeling student earnings, repayment patterns, and investor returns across various educational pathways. Built for organizations like [Malengo](https://www.malengo.org), this tool provides data-driven insights for educational financing decisions.
 
-## Key Features
+### Key Features
 
-- Multiple predefined scenarios (baseline, conservative)
-- Custom degree distributions
-- Configurable economic parameters (inflation, unemployment)
-- Detailed payment tracking and statistics
-- Calculation of IRR (Internal Rate of Return)
-- Tracking of different payment caps and thresholds
+- **🌍 Multi-Program Support**: Models Uganda (university), Kenya (nursing), and Rwanda (trade) programs
+- **📊 Interactive Dashboard**: Web-based interface with real-time scenario modeling
+- **🎲 Monte Carlo Simulations**: Robust statistical analysis with configurable parameters
+- **📈 Financial Modeling**: Calculate IRR, payment distributions, and risk metrics
+- **🔧 Flexible Configuration**: Custom degree distributions, economic parameters, and ISA terms
+- **💾 Scenario Comparison**: Save and compare multiple scenarios side-by-side
+- **📱 Production Ready**: Docker support, logging, and deployment configurations
 
-## Recent Improvements
+## 🚀 Quick Start
 
-The codebase has been significantly improved with:
+### Prerequisites
 
-1. **Type Hints**: Added comprehensive type annotations for better code documentation and IDE support
-2. **Code Organization**: Refactored large functions into smaller, more focused helper functions
-3. **Improved Documentation**: Enhanced docstrings and comments
-4. **Economic Model Enhancements**: Added bounds to inflation and unemployment rates
-5. **Error Handling**: Better handling of edge cases and potential errors
-6. **Reproducibility**: Added random seed support for reproducible simulations
-7. **Command-line Interface**: Added a CLI for easy execution of simulations
-8. **Visualization**: Added plotting capabilities for simulation results
+- Python 3.8+
+- pip (Python package manager)
 
-## Usage
+### Installation
 
-### Basic Usage
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd isa-analysis-tool
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the application**
+   ```bash
+   python simple_app.py
+   ```
+
+4. **Access the web interface**
+   
+   Open your browser to: `http://localhost:10000`
+
+## 📚 Documentation
+
+- **[User Guide](USER_GUIDE.md)** - Comprehensive usage instructions and tutorials
+- **[Deployment Guide](DEPLOYMENT.md)** - Production deployment instructions
+- **[API Reference](API_REFERENCE.md)** - Detailed function and parameter documentation
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+
+## 🏗️ Architecture
+
+The tool consists of two main components:
+
+1. **Simulation Engine** (`simple_isa_model.py`) - Core Monte Carlo simulation logic
+2. **Web Interface** (`simple_app.py`) - Interactive Dash-based dashboard
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ISA Analysis Tool                            │
+├─────────────────────────────────────────────────────────────────┤
+│                  Web Interface (Dash)                          │
+│  ┌─────────────┬─────────────┬─────────────┬─────────────────┐ │
+│  │   About     │ Simulation  │ Comparison  │ Monte Carlo     │ │
+│  │    Tab      │     Tab     │     Tab     │      Tab        │ │
+│  └─────────────┴─────────────┴─────────────┴─────────────────┘ │
+├─────────────────────────────────────────────────────────────────┤
+│                 Simulation Engine                               │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Monte Carlo Simulation Framework                       │   │
+│  │  • Student Generation                                   │   │
+│  │  • Economic Modeling                                    │   │
+│  │  • Payment Processing                                   │   │
+│  │  • Statistical Analysis                                 │   │
+│  └─────────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────────┤
+│                    Data Models                                  │
+│  ┌───────────┬─────────────┬─────────────┬─────────────────┐   │
+│  │ Students  │   Degrees   │  Economics  │   ISA Terms     │   │
+│  │  Class    │   Class     │   Class     │   Parameters    │   │
+│  └───────────┴─────────────┴─────────────┴─────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 🎮 Usage Examples
+
+### Basic Simulation
 
 ```python
 from simple_isa_model import run_simple_simulation
 
-# Run a baseline Nurse scenario
+# Run Uganda baseline scenario
 results = run_simple_simulation(
-    program_type='Nurse',
+    program_type='Uganda',
     num_students=100,
-    num_sims=10,
+    num_sims=50,
     scenario='baseline'
 )
 
-# Access key results
-print(f"IRR: {results['IRR']*100:.2f}%")
-print(f"Average Total Payment: ${results['average_total_payment']:.2f}")
+print(f"Investor IRR: {results['nominal_investor_IRR']*100:.2f}%")
+print(f"Average Payment: ${results['average_nominal_total_payment']:,.2f}")
 ```
 
-### Command-line Interface
-
-The model can also be run directly from the command line:
-
-```bash
-# Run a baseline Nurse scenario
-python simple_isa_model.py --program Kenya --scenario baseline --students 100 --sims 10
-
-# Run a custom University scenario with plots
-python simple_isa_model.py --program Uganda --scenario baseline --students 200 --sims 20 --plot
-
-# Run with a fixed random seed for reproducibility
-python simple_isa_model.py --program Kenya --scenario conservative --seed 42
-```
-
-## Customization
-
-The model supports extensive customization:
+### Custom Parameters
 
 ```python
-# Custom degree distribution
+# Custom scenario with specific parameters
 results = run_simple_simulation(
-    program_type='Nurse',
-    num_students=100,
-    num_sims=10,
+    program_type='Kenya',
+    num_students=200,
+    num_sims=100,
     scenario='custom',
-    nurse_pct=30,
-    asst_pct=50,
-    na_pct=20,
-    # Custom economic parameters
-    initial_inflation_rate=0.03,
-    initial_unemployment_rate=0.10,
-    # Custom ISA parameters
+    # Custom degree distribution
+    nurse_pct=0.6,
+    asst_pct=0.3,
+    na_pct=0.1,
+    # Custom ISA terms
     isa_percentage=0.15,
-    isa_threshold=30000,
-    isa_cap=60000
+    price_per_student=20000,
+    # Custom economic parameters
+    initial_unemployment_rate=0.08,
+    leave_labor_force_probability=0.05
 )
 ```
 
-## Requirements
+### Command Line Interface
 
-- Python 3.6+
-- NumPy
-- Pandas
-- Matplotlib (for plotting)
+```bash
+# Run simulation with command line
+python simple_isa_model.py \
+  --program Uganda \
+  --scenario baseline \
+  --students 100 \
+  --sims 50 \
+  --graduation-delay
+```
 
-## Model Assumptions
+## 🌐 Web Interface Features
 
-### Degree Types and Earnings
+### Simulation Tab
+- **Preset Scenarios**: Pre-configured Uganda, Kenya, and Rwanda scenarios
+- **Custom Parameters**: Adjust degree distributions, salaries, and growth rates
+- **ISA Configuration**: Set percentage, threshold, cap, and price per student
+- **Economic Controls**: Unemployment, inflation, and labor force parameters
 
-The model includes several degree types with different earnings profiles:
+### Analysis Tabs
+- **Payment Distribution**: Visualize payment patterns over time
+- **IRR Comparison**: Compare real vs nominal returns
+- **Student Outcomes**: Track employment and repayment rates
+- **Scenario Comparison**: Save and compare multiple scenarios
 
-1. **Bachelor's Degree (BA)**
-   - Mean annual earnings: $41,300
-   - Standard deviation: $13,000
-   - Experience growth: 4% annually
-   - Years to complete: 4
+### Monte Carlo Features
+- **Blended Scenarios**: Weight multiple scenarios with uncertainty ranges
+- **Parameter Sensitivity**: Test robustness across parameter variations
+- **Statistical Analysis**: Comprehensive distribution analysis and risk metrics
 
-2. **Master's Degree (MA)**
-   - Mean annual earnings: $46,709
-   - Standard deviation: $15,000
-   - Experience growth: 4% annually
-   - Years to complete: 6
+## 🔧 Configuration
 
-3. **Assistant Training (ASST)**
-   - Mean annual earnings: $31,500
-   - Standard deviation: $4,800
-   - Experience growth: 1% annually
-   - Years to complete: 3 (6 years in University program)
-   - Note: The longer completion time for University programs reflects students who drop out of bachelor's programs and switch between programs before completing assistant training
+### Environment Variables
 
-4. **Nursing Degree (NURSE)**
-   - Mean annual earnings: $44,000
-   - Standard deviation: $8,400
-   - Experience growth: 1% annually
-   - Years to complete: 4
+```bash
+# Application settings
+DASH_HOST=0.0.0.0
+DASH_PORT=10000
+DASH_DEBUG=False
 
-5. **No Advancement (NA)**
-   - Mean annual earnings: $2,200
-   - Standard deviation: $640
-   - Experience growth: 1% annually
-   - Years to complete: 4
-   - High probability (80%) of returning to home country
+# Simulation defaults
+DEFAULT_STUDENTS=100
+DEFAULT_SIMULATIONS=50
+```
 
-### Earnings Methodology
+### ISA Program Defaults
 
-The earnings values were derived from average salary levels found in public data sources, with a 15% wage penalty applied to account for the fact that students are typically at the beginning of their careers and earn less than the average worker in their field.
+| Program | ISA % | Threshold | Cap | Price/Student |
+|---------|-------|-----------|-----|---------------|
+| Uganda  | 14%   | $27,000   | $72,500 | $29,000 |
+| Kenya   | 12%   | $27,000   | $49,950 | $16,650 |
+| Rwanda  | 12%   | $27,000   | $45,000 | $16,650 |
 
-- **Nursing Earnings**: Based on median monthly wage of $4,056 (25th percentile: $3,608, 75th percentile: $4,552), annualized to $48,672 with a standard deviation of $8,400. A 15% student wage penalty was applied, resulting in $44,000 mean earnings.
+## 🚀 Deployment
 
-- **Assistant Earnings**: Based on median monthly wage of $2,640 (25th percentile: $2,383, 75th percentile: $2,924), annualized to $31,680 with a standard deviation of $4,800. No additional wage penalty was applied as these values already reflect entry-level positions.
+### Production Deployment
 
-### Predefined Scenarios
+See the [Deployment Guide](DEPLOYMENT.md) for detailed instructions on:
+- Docker containerization
+- Cloud platform deployment (AWS, GCP, Azure)
+- Load balancing and scaling
+- Security configurations
+- Monitoring and logging
 
-1. **University Baseline**
-   - 100% Bachelor's Degree students
+### Quick Deploy with Docker
 
-2. **Nurse Baseline**
-   - 45% Nursing students
-   - 45% Assistant students
-   - 10% No Advancement students
+```bash
+# Build and run container
+docker build -t isa-analysis-tool .
+docker run -p 10000:10000 isa-analysis-tool
+```
 
-3. **Nurse Conservative**
-   - 25% Nursing students
-   - 60% Assistant students
-   - 15% No Advancement students
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+- Code standards and style guide
+- Development setup
+- Testing procedures
+- Pull request process
+
+## 📊 Model Assumptions
 
 ### Economic Parameters
+- **Default Inflation**: 2% annually
+- **Default Unemployment**: 4-8% range
+- **Experience Growth**: Varies by degree type (0.5%-4% annually)
+- **Immigrant Wage Penalty**: ~20% reduction from baseline earnings
 
-- Default inflation rate: 2% annually
-- Default unemployment rate: 4%
-- ISA threshold: $27,000 (minimum income before payments begin)
-- ISA cap: Varies by program ($72,500 for University, $49,950 for Nurse)
-- ISA percentage: Varies by program (14% for University, 12% for Nurse)
+### Degree Types
 
-### Foreign Student Modeling
+| Degree | Mean Salary | Growth Rate | Completion Time |
+|--------|-------------|-------------|-----------------|
+| Bachelor's (BA) | $41,300 | 3% | 4 years |
+| Master's (MA) | $46,709 | 4% | 6 years |
+| Assistant (ASST) | $31,500 | 0.5% | 3 years |
+| Nursing | $40,000 | 2% | 4 years |
+| Trade | $35,000 | 2% | 3 years |
+| No Advancement | $2,200 | 1% | 4 years |
 
-The model accounts for students who return to their home countries after graduation through the `home_prob` parameter. When a student returns home, their earnings are significantly reduced, reflecting the typically lower wages in developing countries. 
+*All salaries include immigrant wage penalty and represent entry-level positions*
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: Check our [User Guide](USER_GUIDE.md) and [API Reference](API_REFERENCE.md)
+- **Issues**: Report bugs via [GitHub Issues](https://github.com/your-org/isa-analysis-tool/issues)
+- **Discussions**: Join our [GitHub Discussions](https://github.com/your-org/isa-analysis-tool/discussions)
+- **Enterprise Support**: Contact us for dedicated support options
+
+## 🏆 Acknowledgments
+
+- Built for educational financing analysis and [Malengo](https://www.malengo.org) program optimization
+- Inspired by research on migration economics and educational access
+- Uses data from German education and labor market sources
+
+---
+
+**Made with ❤️ for educational equity and evidence-based policy making** 

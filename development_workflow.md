@@ -2,7 +2,7 @@
 
 ## Project Context
 
-The Income Share Agreement (ISA) simulation model helps investors analyze returns and sensitivities of educational financing contracts. The primary goal is to provide transparency so investors can thoroughly test assumptions and understand expected returns from Malengo contracts.
+The Income Share Agreement (ISA)  simulation model helps investors analyze returns and sensitivities of educational financing contracts. The primary goal is to provide transparency so investors can thoroughly test assumptions and understand expected returns from Malengo contracts.
 
 ## Development Phases and Tasks
 
